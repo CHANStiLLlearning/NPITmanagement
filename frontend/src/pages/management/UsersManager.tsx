@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Users, UserPlus, Search, ShieldCheck, Mail, Trash2, Edit, RefreshCw } from 'lucide-react';
+import { Users, UserPlus, Search, ShieldCheck, Mail, Trash2, Edit, RefreshCw, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AvatarUpload } from '@/components/common/AvatarUpload';
 
 interface UserItem {
   id: number;
@@ -12,7 +13,9 @@ interface UserItem {
   last_name?: string;
   role: string;
   is_active: boolean;
+  photo_url?: string;
 }
+
 
 export default function UsersManager() {
   const queryClient = useQueryClient();
@@ -65,6 +68,32 @@ export default function UsersManager() {
     }
   });
 
+  const avatarMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: number; file: File }) => {
+      const token = localStorage.getItem('access_token');
+      const fd = new FormData(); fd.append('file', file);
+      const { data } = await axios.post(`http://localhost:8000/users/${id}/avatar`, fd, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      });
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  });
+
+  const [avatarUserId, setAvatarUserId] = useState<number | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const handleAvatarClick = (userId: number) => {
+    setAvatarUserId(userId);
+    setTimeout(() => avatarInputRef.current?.click(), 50);
+  };
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !avatarUserId) return;
+    await avatarMutation.mutateAsync({ id: avatarUserId, file });
+    if (avatarInputRef.current) avatarInputRef.current.value = '';
+    setAvatarUserId(null);
+  };
+
   return (
     <Layout>
       <div className="space-y-6 pb-12 bg-white">
@@ -110,13 +139,19 @@ export default function UsersManager() {
           </select>
         </div>
 
-        {/* Users Table */}
         <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xs">
+          {/* Hidden file input for per-row avatar upload */}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
           <table className="w-full text-left text-xs">
             <thead className="bg-blue-50/60 text-[#2269ff] uppercase font-black tracking-wider border-b border-blue-100">
               <tr>
-                <th className="px-6 py-3.5">ID</th>
-                <th className="px-6 py-3.5">ឈ្មោះពេញ (Full Name)</th>
+                <th className="px-6 py-3.5">User</th>
                 <th className="px-6 py-3.5">អ៊ីមែល (Email)</th>
                 <th className="px-6 py-3.5">តួនាទី (Role)</th>
                 <th className="px-6 py-3.5">ស្ថានភាព (Status)</th>
@@ -126,16 +161,30 @@ export default function UsersManager() {
             <tbody className="divide-y divide-slate-100 font-bold text-[#122b59]">
               {users.map((u) => (
                 <tr key={u.id} className="hover:bg-blue-50/30 transition-colors">
-                  <td className="px-6 py-4 font-mono text-slate-500">#{u.id}</td>
-                  <td className="px-6 py-4 text-[#0a1f44]">
-                    {u.first_name || u.last_name ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : 'N/A'}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {u.photo_url ? (
+                        <img src={`http://localhost:8000${u.photo_url}`} alt="" className="h-9 w-9 rounded-full object-cover border-2 border-blue-100 shrink-0" />
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#2269ff] to-blue-800 text-xs font-black text-white shrink-0">
+                          {u.first_name?.[0] ?? u.email[0].toUpperCase()}{u.last_name?.[0] ?? ''}
+                        </div>
+                      )}
+                      <span className="text-[#0a1f44]">
+                        {u.first_name || u.last_name ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : 'N/A'}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 font-mono text-[#2269ff]">{u.email}</td>
                   <td className="px-6 py-4">
-                    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase ${
-                      u.role === 'super_admin' ? 'bg-red-50 text-[#ec171c] border border-red-200' :
-                      u.role === 'teacher' ? 'bg-blue-50 text-[#2269ff] border border-blue-200' :
-                      'bg-amber-50 text-[#ca8a04] border border-amber-200'
+                    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase border ${
+                      u.role === 'super_admin' ? 'bg-red-100 text-red-700 border-red-200' :
+                      u.role === 'admin'       ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                      u.role === 'principal'   ? 'bg-indigo-100 text-indigo-700 border-indigo-200' :
+                      u.role === 'teacher'     ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                      u.role === 'student'     ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                      u.role === 'parent'      ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                      'bg-slate-100 text-slate-700 border-slate-200'
                     }`}>
                       {u.role.replace('_', ' ')}
                     </span>
@@ -146,17 +195,27 @@ export default function UsersManager() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => deleteUserMutation.mutate(u.id)}
-                      className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50 transition-colors">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleAvatarClick(u.id)}
+                        title="Upload Photo"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-blue-50 hover:text-[#2269ff] transition-colors"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteUserMutation.mutate(u.id)}
+                        className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50 transition-colors">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
 
         {/* Create User Modal */}
         {isModalOpen && (

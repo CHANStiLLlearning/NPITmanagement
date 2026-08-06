@@ -3,13 +3,15 @@ import { Sidebar } from './Sidebar';
 import GlobalSearchModal from '../common/GlobalSearchModal';
 import { Breadcrumbs } from '../common/Breadcrumbs';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Search, LogOut, Sun, Moon } from 'lucide-react';
+import { Search, LogOut, Sun, Moon, UserCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Global Ctrl+K trigger listener
   useEffect(() => {
@@ -56,9 +58,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
             {/* User Profile Info & Logout */}
             <div className="flex items-center gap-3 border-l border-blue-100 pl-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-blue-700 to-[#2269ff] text-xs font-bold text-white shadow-sm">
-                {user?.first_name ? user.first_name[0] : 'U'}
-              </div>
+              <button
+                onClick={() => navigate('/profile')}
+                title="My Profile"
+                className="relative group"
+              >
+                {user?.photo_url ? (
+                  <img
+                    src={`http://localhost:8000${user.photo_url}`}
+                    alt="Profile"
+                    className="h-9 w-9 rounded-full object-cover border-2 border-blue-200 group-hover:border-[#2269ff] transition-all shadow-sm"
+                  />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-blue-700 to-[#2269ff] text-xs font-bold text-white shadow-sm group-hover:ring-2 group-hover:ring-[#2269ff] transition-all">
+                    {user?.first_name ? user.first_name[0] : 'U'}
+                  </div>
+                )}
+              </button>
               <div className="hidden sm:block text-left">
                 <p className="text-xs font-bold text-[#0a1f44] leading-tight">
                   {user?.first_name} {user?.last_name}

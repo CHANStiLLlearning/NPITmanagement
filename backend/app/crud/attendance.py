@@ -15,6 +15,49 @@ def get_today_record(db: Session, student_sid: str, today: date) -> AttendanceRe
     ).first()
 
 
+def auto_mark_absents(db: Session, target_date: date) -> int:
+    """
+    Auto-mark active students absent if they haven't scanned on a school day.
+    Friday (weekday 4) and Sunday (weekday 6) are EXEMPT (off days / weekends).
+    """
+    # 4 = Friday, 6 = Sunday
+    if target_date.weekday() in (4, 6):
+        return 0
+
+    active_students = db.query(Student).filter(Student.is_active == True).all()
+    if not active_students:
+        return 0
+
+    scanned_sids = set(
+        r[0] for r in db.query(AttendanceRecord.student_sid)
+        .filter(AttendanceRecord.date == target_date)
+        .all()
+    )
+
+    absent_count = 0
+    for student in active_students:
+        if student.student_id not in scanned_sids:
+            record = AttendanceRecord(
+                student_id=student.id,
+                student_sid=student.student_id,
+                student_name=f"{student.first_name} {student.last_name}",
+                class_name=student.class_name,
+                section=student.section,
+                date=target_date,
+                status=AttendanceStatus.absent,
+                scan_method="auto_system",
+                scanned_by="system_cron",
+                notes="Auto-marked absent (No scan recorded)",
+            )
+            db.add(record)
+            absent_count += 1
+
+    if absent_count > 0:
+        db.commit()
+
+    return absent_count
+
+
 def scan_qr(db: Session, request: ScanRequest, scanned_by: str) -> ScanResponse:
     """Core scan logic: resolve student → check duplicate → determine status → save."""
     student = db.query(Student).filter(Student.student_id == request.student_sid).first()
@@ -24,15 +67,63 @@ def scan_qr(db: Session, request: ScanRequest, scanned_by: str) -> ScanResponse:
     today = datetime.utcnow().date()
     now   = datetime.utcnow().time()
 
-    # Duplicate prevention
+    # Duplicate prevention / auto-absent update
     existing = get_today_record(db, request.student_sid, today)
     if existing:
-        return ScanResponse(
-            success=False,
-            message=f"{student.first_name} {student.last_name} already marked {existing.status.value} today.",
-            record=AttendanceOut.model_validate(existing),
-            duplicate=True,
-        )
+        if existing.status == AttendanceStatus.absent and existing.scan_method == "auto_system":
+            # Student was auto-marked absent, but scanned in now!
+            status = AttendanceStatus.present
+            if request.late_after:
+                h, m = map(int, request.late_after.split(":"))
+                cutoff = time_type(h, m)
+                if now > cutoff:
+                    status = AttendanceStatus.late
+
+            existing.status = status
+            existing.time_in = now
+            existing.scan_method = "qr"
+            existing.scanned_by = scanned_by
+            existing.notes = None
+            db.commit()
+            db.refresh(existing)
+
+            label = "on time" if status == AttendanceStatus.present else "late"
+            out = AttendanceOut.model_validate(existing)
+            out.photo_url = student.photo_url
+            return ScanResponse(
+                success=True,
+                message=f"✓ {student.first_name} {student.last_name} marked {label}.",
+                record=out,
+                duplicate=False,
+                photo_url=student.photo_url,
+            )
+        elif not existing.time_out:
+            # Student is scanning a second time to CHECK OUT / GO HOME!
+            existing.time_out = now
+            db.commit()
+            db.refresh(existing)
+
+            time_out_str = now.strftime('%I:%M %p')
+            out = AttendanceOut.model_validate(existing)
+            out.photo_url = student.photo_url
+            return ScanResponse(
+                success=True,
+                message=f"👋 Goodbye {student.first_name} {student.last_name}! Checked OUT at {time_out_str}.",
+                record=out,
+                duplicate=False,
+                photo_url=student.photo_url,
+            )
+        else:
+            out = AttendanceOut.model_validate(existing)
+            out.photo_url = student.photo_url
+            time_out_str = existing.time_out.strftime('%I:%M %p') if existing.time_out else "earlier"
+            return ScanResponse(
+                success=False,
+                message=f"{student.first_name} {student.last_name} already checked OUT at {time_out_str} today.",
+                record=out,
+                duplicate=True,
+                photo_url=student.photo_url,
+            )
 
     # Late detection
     status = AttendanceStatus.present
@@ -59,11 +150,14 @@ def scan_qr(db: Session, request: ScanRequest, scanned_by: str) -> ScanResponse:
     db.refresh(record)
 
     label = "on time" if status == AttendanceStatus.present else "late"
+    out = AttendanceOut.model_validate(record)
+    out.photo_url = student.photo_url
     return ScanResponse(
         success=True,
         message=f"✓ {student.first_name} {student.last_name} marked {label}.",
-        record=AttendanceOut.model_validate(record),
+        record=out,
         duplicate=False,
+        photo_url=student.photo_url,
     )
 
 
@@ -76,6 +170,10 @@ def get_records(
     skip: int = 0,
     limit: int = 200,
 ) -> list[AttendanceRecord]:
+    target_date = date_filter or datetime.utcnow().date()
+    # Auto mark unscanned students as absent on school days
+    auto_mark_absents(db, target_date)
+
     query = db.query(AttendanceRecord)
     if date_filter:
         query = query.filter(AttendanceRecord.date == date_filter)
@@ -85,7 +183,13 @@ def get_records(
         query = query.filter(AttendanceRecord.status == status)
     if student_sid:
         query = query.filter(AttendanceRecord.student_sid == student_sid)
-    return query.order_by(AttendanceRecord.created_at.desc()).offset(skip).limit(limit).all()
+    
+    records = query.order_by(AttendanceRecord.created_at.desc()).offset(skip).limit(limit).all()
+    # Populate photo_url dynamically from student model
+    for r in records:
+        if r.student:
+            r.photo_url = r.student.photo_url
+    return records
 
 
 def get_analytics(db: Session, from_date: Optional[date] = None, to_date: Optional[date] = None) -> dict:

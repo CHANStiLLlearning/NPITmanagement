@@ -20,6 +20,7 @@ const ROUTE_NAMES: Record<string, string> = {
   'system-logs': 'Audit Logs',
   'users': 'User Management',
   'settings': 'School Settings',
+  'profile': 'My Profile',
 };
 
 export function Breadcrumbs() {

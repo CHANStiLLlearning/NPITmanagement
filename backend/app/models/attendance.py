@@ -27,6 +27,7 @@ class AttendanceRecord(Base):
     # When
     date          = Column(Date, nullable=False, index=True)
     time_in       = Column(Time, nullable=True)
+    time_out      = Column(Time, nullable=True)
     status        = Column(Enum(AttendanceStatus), default=AttendanceStatus.present)
 
     # Scan meta

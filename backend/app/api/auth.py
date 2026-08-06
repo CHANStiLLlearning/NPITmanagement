@@ -144,11 +144,11 @@ def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)
     """
     Public self-registration for students and parents only.
     """
-    allowed_roles = {"student", "parent"}
+    allowed_roles = {"student", "parent", "teacher", "admin"}
     if request_data.role not in allowed_roles:
         raise HTTPException(
             status_code=400,
-            detail="Only 'student' or 'parent' roles can self-register."
+            detail="Registration allowed for student, teacher, admin, or parent."
         )
     existing = get_user_by_email(db, email=request_data.email)
     if existing:
@@ -169,6 +169,10 @@ def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)
     from app.crud.user import create_user
     user = create_user(db, user_in)
     
+    user_email = user.email
+    user_name = f"{user.first_name} {user.last_name}".strip()
+    user_role = user.role
+
     if user.role == RoleEnum.student:
         from app.schemas.student import StudentCreate
         from app.crud.student import create_student
@@ -180,15 +184,29 @@ def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)
             )
             create_student(db, student_in)
         except Exception as e:
-            print(f"Failed to create student profile for user {user.email}: {e}")
+            db.rollback()
+            print(f"Failed to create student profile for user {user_email}: {e}")
+    elif user.role == RoleEnum.teacher:
+        from app.schemas.teacher import TeacherCreate
+        from app.crud.teacher import create_teacher
+        try:
+            teacher_in = TeacherCreate(
+                first_name=user.first_name,
+                last_name=user.last_name,
+                email=user.email,
+            )
+            create_teacher(db, teacher_in)
+        except Exception as e:
+            db.rollback()
+            print(f"Failed to create teacher profile for user {user_email}: {e}")
 
     log_action(
         db,
-        user_email=user.email,
-        user_name=f"{user.first_name} {user.last_name}",
+        user_email=user_email,
+        user_name=user_name,
         action="create",
         module="Auth",
-        details=f"New self-registration as {user.role}",
+        details=f"New self-registration as {user_role}",
         ip_address="self-register"
     )
     return {"message": "Account created successfully. You can now log in."}

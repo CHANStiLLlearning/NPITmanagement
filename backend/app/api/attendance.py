@@ -49,6 +49,35 @@ def read_attendance(
                        status=status, student_sid=student_sid, skip=skip, limit=limit)
 
 
+@router.post("/auto-absent")
+def trigger_auto_absent(
+    target_date: Optional[date] = Query(None, alias="date"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Trigger auto-absent marking for unscanned students.
+    Exempts Friday (weekday 4) and Sunday (weekday 6).
+    """
+    dt = target_date or datetime.utcnow().date()
+    from app.crud.attendance import auto_mark_absents
+    count = auto_mark_absents(db, dt)
+    day_name = dt.strftime("%A")
+    if dt.weekday() in (4, 6):
+        return {
+            "message": f"Date {dt} ({day_name}) is an exempt off-day. No absent records created.",
+            "date": str(dt),
+            "absent_marked": 0,
+            "exempt": True,
+        }
+    return {
+        "message": f"Successfully auto-marked {count} unscanned student(s) as absent for {dt} ({day_name}).",
+        "date": str(dt),
+        "absent_marked": count,
+        "exempt": False,
+    }
+
+
 @router.get("/analytics")
 def attendance_analytics(
     from_date: Optional[date] = None,
@@ -313,22 +342,40 @@ def get_students_qr(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Return students with their QR codes for card printing."""
+    """Return students with their 1 unique QR code. Students can ONLY see their own QR code."""
     query = db.query(Student).filter(Student.is_active == True)
-    if class_name:
-        query = query.filter(Student.class_name == class_name)
-    students = query.all()
-    return [
-        {
+    
+    if current_user.role.value == "student":
+        # Strictly restrict student account to only their own profile
+        query = query.filter(Student.email == current_user.email)
+        students = query.all()
+        if not students and current_user.first_name:
+            students = db.query(Student).filter(
+                Student.first_name.ilike(f"%{current_user.first_name}%")
+            ).all()
+    else:
+        if class_name:
+            query = query.filter(Student.class_name == class_name)
+        students = query.all()
+
+    result = []
+    from app.crud.student import generate_qr_code
+    for s in students:
+        if not s.qr_code and s.student_id:
+            s.qr_code = generate_qr_code(s.student_id)
+            db.commit()
+            db.refresh(s)
+        result.append({
             "id": s.id,
             "student_id": s.student_id,
             "name": f"{s.first_name} {s.last_name}",
+            "email": s.email,
             "class_name": s.class_name,
             "section": s.section,
+            "photo_url": s.photo_url,
             "qr_code": s.qr_code,
-        }
-        for s in students
-    ]
+        })
+    return result
 
 
 @router.put("/{record_id}", response_model=AttendanceOut)

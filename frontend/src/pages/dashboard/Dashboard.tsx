@@ -3,6 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Layout } from '@/components/layout/Layout';
 import { NPITLogo } from '@/components/common/NPITLogo';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
 import {
   Users, UserCheck, GraduationCap, Award,
   TrendingUp, ArrowUpRight, Clock, Activity, Calendar,
@@ -101,6 +103,46 @@ const scoreProgressData = {
   ],
 };
 
+interface SystemLogOut {
+  id: number;
+  user_email: string;
+  user_name?: string;
+  action: string;
+  module: string;
+  details?: string;
+  ip_address?: string;
+  timestamp: string;
+}
+
+const getModuleBadge = (moduleStr: string, actionStr: string) => {
+  const m = (moduleStr || '').toLowerCase();
+  const a = (actionStr || '').toLowerCase();
+  if (a.includes('login') || m.includes('auth') || m.includes('user')) {
+    return { tag: 'គណនី & ប្រព័ន្ធ', tagColor: 'bg-blue-50 text-[#2269ff] border-blue-200' };
+  } else if (m.includes('attendance') || m.includes('qr') || m.includes('វត្តមាន')) {
+    return { tag: 'វត្តមានសិស្ស', tagColor: 'bg-red-50 text-[#ec171c] border-red-200' };
+  } else if (m.includes('report') || m.includes('teaching') || m.includes('របាយការណ៍')) {
+    return { tag: 'របាយការណ៍', tagColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+  } else if (m.includes('score') || m.includes('grade') || m.includes('ពិន្ទុ')) {
+    return { tag: 'ពិន្ទុ & និទ្ទេស', tagColor: 'bg-amber-50 text-[#ca8a04] border-amber-200' };
+  } else {
+    return { tag: moduleStr || 'ប្រព័ន្ធ', tagColor: 'bg-purple-50 text-purple-700 border-purple-200' };
+  }
+};
+
+const formatTimeAgo = (timestampStr: string) => {
+  if (!timestampStr) return '';
+  const dateObj = new Date(timestampStr);
+  const diffMs = Date.now() - dateObj.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  if (diffMins < 1) return 'ទើបតែឥឡូវ';
+  if (diffMins < 60) return `${diffMins} នាទីមុន`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} ម៉ោងមុន`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} ថ្ងៃមុន`;
+};
+
 const recentActivities = [
   { id: 1, text: 'បានស្រង់វត្តមានសិស្ស ថ្នាក់មេកានិច 10A', time: '10 នាទីមុន', user: 'លោកគ្រូ សំនៀង', tag: 'វត្តមានសិស្ស', tagColor: 'bg-blue-50 text-[#2269ff] border-blue-200' },
   { id: 2, text: 'បានដាក់របាយការណ៍បង្រៀន មុខវិជ្ជាសៀគ្វីអគ្គិសនី', time: '35 នាទីមុន', user: 'បណ្ឌិត វង្ស ចន្ទ្រា', tag: 'របាយការណ៍', tagColor: 'bg-red-50 text-[#ec171c] border-red-200' },
@@ -127,6 +169,30 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const now = new Date();
   const dateStr = now.toLocaleDateString('km-KH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const { data: rawSystemLogs = [] } = useQuery<SystemLogOut[]>({
+    queryKey: ['system-logs-recent'],
+    queryFn: async () => {
+      const { data } = await axios.get('/system-logs/', { params: { limit: 5 } });
+      return Array.isArray(data) ? data : [];
+    },
+    refetchInterval: 10000,
+  });
+
+  const displayLogs = rawSystemLogs.length > 0
+    ? rawSystemLogs.map((l) => {
+        const { tag, tagColor } = getModuleBadge(l.module, l.action);
+        const timeAgo = formatTimeAgo(l.timestamp);
+        return {
+          id: l.id,
+          text: l.details || `${l.action.toUpperCase()} · ${l.module}`,
+          user: l.user_name || l.user_email.split('@')[0],
+          time: timeAgo,
+          tag,
+          tagColor,
+        };
+      })
+    : recentActivities;
 
   // ── DEDICATED STUDENT DASHBOARD ──
   if (user?.role === 'student') {
@@ -415,7 +481,7 @@ export default function Dashboard() {
             </div>
 
             <div className="divide-y divide-slate-100">
-              {recentActivities.map((act) => (
+              {displayLogs.map((act) => (
                 <div key={act.id} className="flex items-center justify-between py-3.5">
                   <div className="flex items-center gap-3">
                     <span className={`rounded-md border px-2.5 py-1 text-xs font-bold uppercase ${act.tagColor}`}>

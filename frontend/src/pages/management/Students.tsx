@@ -4,12 +4,12 @@ import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Plus, Pencil, Trash2, Eye, Download, Upload,
+  Search, Plus, Pencil, Trash2, Eye, Upload,
   FileSpreadsheet, X, User, Phone, MapPin, BookOpen,
   HeartPulse, ShieldAlert, QrCode, Filter, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { AvatarUpload } from '@/components/common/AvatarUpload';
 
 // ──────────────── Types ────────────────
 interface Student {
@@ -107,6 +107,15 @@ export default function Students() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => axios.delete(`/students/${id}`),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['students'] }); setDeleteTarget(null); },
+  });
+
+  const avatarMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: number; file: File }) => {
+      const fd = new FormData(); fd.append('file', file);
+      const { data } = await axios.post(`/students/${id}/avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      return data as { photo_url: string };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['students'] }),
   });
 
   // helpers
@@ -232,9 +241,13 @@ export default function Students() {
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#2269ff] to-violet-600 text-sm font-bold text-white shrink-0">
-                            {s.first_name[0]}{s.last_name[0]}
-                          </div>
+                          {s.photo_url ? (
+                            <img src={`http://localhost:8000${s.photo_url}`} alt="" className="h-9 w-9 rounded-full object-cover border-2 border-blue-100 shrink-0" />
+                          ) : (
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#2269ff] to-violet-600 text-sm font-bold text-white shrink-0">
+                              {s.first_name[0]}{s.last_name[0]}
+                            </div>
+                          )}
                           <div>
                             <p className="font-medium text-[#0a1f44] ">{s.first_name} {s.last_name}</p>
                             <p className="text-xs text-slate-400">{s.gender || '—'}</p>
@@ -288,9 +301,14 @@ export default function Students() {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 {/* Left: Avatar + QR */}
                 <div className="flex flex-col items-center gap-4 rounded-2xl bg-gradient-to-br from-blue-50 to-violet-50 p-6 sm:col-span-1">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2269ff] to-violet-600 text-3xl font-bold text-white shadow-md">
-                    {showProfile.first_name[0]}{showProfile.last_name[0]}
-                  </div>
+                  <AvatarUpload
+                    currentUrl={showProfile.photo_url}
+                    name={`${showProfile.first_name} ${showProfile.last_name}`}
+                    size={96}
+                    onUpload={async (file) => {
+                      await avatarMutation.mutateAsync({ id: showProfile.id, file });
+                    }}
+                  />
                   <div className="text-center">
                     <p className="text-lg font-bold text-[#0a1f44]">{showProfile.first_name} {showProfile.last_name}</p>
                     <span className="font-mono text-xs text-[#2269ff] font-semibold">{showProfile.student_id}</span>
@@ -360,6 +378,21 @@ export default function Students() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {formTab === 0 && <>
+                  <div className="sm:col-span-2 flex justify-center py-2">
+                    <AvatarUpload
+                      currentUrl={formData.photo_url}
+                      name={`${formData.first_name || ''} ${formData.last_name || ''}`}
+                      size={88}
+                      disabled={!editTarget}
+                      onUpload={async (file) => {
+                        if (editTarget) {
+                          const res = await avatarMutation.mutateAsync({ id: editTarget.id, file });
+                          setFormData(p => ({ ...p, photo_url: res.photo_url }));
+                        }
+                      }}
+                    />
+                    {!editTarget && <p className="sr-only">Save student first to upload photo</p>}
+                  </div>
                   <FormField label="First Name *" value={formData.first_name} onChange={v => handleField('first_name', v)} />
                   <FormField label="Last Name *" value={formData.last_name} onChange={v => handleField('last_name', v)} />
                   <FormField label="Date of Birth" type="date" value={formData.date_of_birth} onChange={v => handleField('date_of_birth', v)} />
@@ -370,6 +403,7 @@ export default function Students() {
                     <FormField label="Address" value={formData.address} onChange={v => handleField('address', v)} />
                   </div>
                 </>}
+
                 {formTab === 1 && <>
                   <FormSelect label="Class" value={formData.class_name} onChange={v => handleField('class_name', v)}
                     options={['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12']} />

@@ -1,5 +1,7 @@
 import io
 import csv
+import os
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -15,6 +17,35 @@ from app.models.user import User
 
 router = APIRouter()
 
+UPLOAD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "uploads"))
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+ALLOWED_IMAGE_EXTS = {"png", "jpg", "jpeg", "webp", "gif"}
+MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 MB
+
+@router.post("/{teacher_id}/avatar")
+async def upload_teacher_avatar(
+    teacher_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Upload profile photo for a specific teacher."""
+    teacher = get_teacher(db, teacher_id=teacher_id)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    content = await file.read()
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in ALLOWED_IMAGE_EXTS:
+        raise HTTPException(status_code=400, detail="Invalid image type.")
+    if len(content) > MAX_AVATAR_SIZE:
+        raise HTTPException(status_code=400, detail="Image exceeds 5 MB limit.")
+    unique_name = f"teacher_{uuid.uuid4().hex[:10]}.{ext}"
+    with open(os.path.join(UPLOAD_DIR, unique_name), "wb") as f:
+        f.write(content)
+    teacher.photo_url = f"/static/uploads/{unique_name}"
+    db.commit()
+    db.refresh(teacher)
+    return {"photo_url": teacher.photo_url}
 
 @router.get("/", response_model=List[Teacher])
 def read_teachers(

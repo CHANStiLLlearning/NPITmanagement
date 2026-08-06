@@ -21,3 +21,4 @@ class User(Base):
     role = Column(Enum(RoleEnum), default=RoleEnum.student)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
+    photo_url = Column(String(500), nullable=True)

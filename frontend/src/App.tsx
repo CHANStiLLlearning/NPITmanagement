@@ -19,6 +19,7 @@ import Analytics from '@/pages/system/Analytics';
 import FileManager from '@/pages/system/FileManager';
 import SystemLogs from '@/pages/system/SystemLogs';
 import ReportsCenter from '@/pages/system/ReportsCenter';
+import ProfilePage from '@/pages/management/ProfilePage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { token } = useAuth();
@@ -55,6 +56,7 @@ function AppRoutes() {
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/system-logs" element={<ProtectedRoute><SystemLogs /></ProtectedRoute>} />
       <Route path="/file-manager" element={<ProtectedRoute><FileManager /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>

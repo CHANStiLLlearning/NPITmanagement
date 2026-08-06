@@ -7,6 +7,7 @@ interface User {
   first_name: string;
   last_name: string;
   role: string;
+  photo_url?: string;
 }
 
 interface AuthContextType {
@@ -14,6 +15,7 @@ interface AuthContextType {
   token: string | null;
   login: (access_token: string, refresh_token: string) => void;
   logout: () => void;
+  refetchUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -21,6 +23,17 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
+
+  const fetchUser = async () => {
+    const currentToken = localStorage.getItem('access_token');
+    if (!currentToken) return;
+    try {
+      const response = await axios.get('/users/me');
+      setUser(response.data);
+    } catch {
+      logout();
+    }
+  };
 
   useEffect(() => {
     // Axios interceptor for refresh token
@@ -33,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const refreshToken = localStorage.getItem('refresh_token');
           if (refreshToken) {
             try {
-              const res = await axios.post('http://localhost:8000/auth/refresh', { refresh_token: refreshToken });
+              const res = await axios.post('/auth/refresh', { refresh_token: refreshToken });
               const { access_token, refresh_token: new_refresh_token } = res.data;
               localStorage.setItem('access_token', access_token);
               localStorage.setItem('refresh_token', new_refresh_token);
@@ -59,7 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       localStorage.setItem('access_token', token);
       
-      axios.get('http://localhost:8000/users/me')
+      axios.get('/users/me')
         .then(response => setUser(response.data))
         .catch(() => logout());
     } else {
@@ -80,7 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, refetchUser: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

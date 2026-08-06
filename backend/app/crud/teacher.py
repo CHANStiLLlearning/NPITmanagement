@@ -11,7 +11,12 @@ from app.schemas.teacher import TeacherCreate, TeacherUpdate
 def generate_teacher_id(db: Session) -> str:
     year = datetime.utcnow().year
     count = db.query(Teacher).count() + 1
-    return f"TCH-{year}-{count:04d}"
+    while True:
+        candidate = f"TCH-{year}-{count:04d}"
+        if not db.query(Teacher).filter(Teacher.teacher_id == candidate).first():
+            return candidate
+        count += 1
+
 
 
 def generate_qr_code(teacher_id: str) -> str:

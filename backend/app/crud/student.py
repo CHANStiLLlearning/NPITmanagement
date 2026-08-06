@@ -10,11 +10,16 @@ from app.schemas.student import StudentCreate, StudentUpdate
 
 
 def generate_student_id(db: Session) -> str:
-    """Generate a unique student ID like STU-2025-0001"""
+    """Generate a unique student ID like STU-2026-0001"""
     from datetime import datetime
     year = datetime.utcnow().year
     count = db.query(Student).count() + 1
-    return f"STU-{year}-{count:04d}"
+    while True:
+        candidate = f"STU-{year}-{count:04d}"
+        if not db.query(Student).filter(Student.student_id == candidate).first():
+            return candidate
+        count += 1
+
 
 
 def generate_qr_code(student_id: str) -> str:

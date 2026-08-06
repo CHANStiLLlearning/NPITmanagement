@@ -10,6 +10,7 @@ import {
   TrendingUp, Clock, Award, ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AvatarUpload } from '@/components/common/AvatarUpload';
 
 // ─── Types ───────────────────────────────────────────
 interface Teacher {
@@ -124,6 +125,15 @@ export default function Teachers() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => axios.delete(`/teachers/${id}`),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['teachers'] }); setDeleteTarget(null); },
+  });
+
+  const avatarMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: number; file: File }) => {
+      const fd = new FormData(); fd.append('file', file);
+      const { data } = await axios.post(`/teachers/${id}/avatar`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      return data as { photo_url: string };
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['teachers'] }),
   });
 
   const openCreate = () => { setFormData(emptyForm); setEditTarget(null); setFormTab(0); setShowForm(true); };
@@ -274,9 +284,13 @@ export default function Teachers() {
                       className="hover:bg-slate-50 :bg-[#1c3a73]/40 transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-bold text-white shrink-0">
-                            {t.first_name[0]}{t.last_name[0]}
-                          </div>
+                          {t.photo_url ? (
+                            <img src={`http://localhost:8000${t.photo_url}`} alt="" className="h-10 w-10 rounded-full object-cover border-2 border-violet-100 shrink-0" />
+                          ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-bold text-white shrink-0">
+                              {t.first_name[0]}{t.last_name[0]}
+                            </div>
+                          )}
                           <div>
                             <p className="font-medium text-[#0a1f44] ">{t.first_name} {t.last_name}</p>
                             <p className="text-xs text-slate-400 capitalize">{t.employment_type?.replace('_', ' ') || '—'}</p>
@@ -336,9 +350,14 @@ export default function Teachers() {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 {/* Left card */}
                 <div className="flex flex-col items-center gap-4 rounded-2xl bg-gradient-to-br from-violet-50 to-purple-50 p-6">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 text-3xl font-bold text-white shadow-md">
-                    {showProfile.first_name[0]}{showProfile.last_name[0]}
-                  </div>
+                  <AvatarUpload
+                    currentUrl={showProfile.photo_url}
+                    name={`${showProfile.first_name} ${showProfile.last_name}`}
+                    size={96}
+                    onUpload={async (file) => {
+                      await avatarMutation.mutateAsync({ id: showProfile.id, file });
+                    }}
+                  />
                   <div className="text-center">
                     <p className="text-lg font-bold text-[#0a1f44]">{showProfile.first_name} {showProfile.last_name}</p>
                     <span className="font-mono text-xs font-semibold text-violet-600">{showProfile.teacher_id}</span>
@@ -412,6 +431,20 @@ export default function Teachers() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {formTab === 0 && <>
+                  <div className="sm:col-span-2 flex justify-center py-2">
+                    <AvatarUpload
+                      currentUrl={formData.photo_url}
+                      name={`${formData.first_name || ''} ${formData.last_name || ''}`}
+                      size={88}
+                      disabled={!editTarget}
+                      onUpload={async (file) => {
+                        if (editTarget) {
+                          const res = await avatarMutation.mutateAsync({ id: editTarget.id, file });
+                          setFormData(p => ({ ...p, photo_url: res.photo_url }));
+                        }
+                      }}
+                    />
+                  </div>
                   <FormField label="First Name *" value={formData.first_name} onChange={v => handleField('first_name', v)} />
                   <FormField label="Last Name *"  value={formData.last_name}  onChange={v => handleField('last_name',  v)} />
                   <FormField label="Date of Birth" type="date" value={formData.date_of_birth} onChange={v => handleField('date_of_birth', v)} />

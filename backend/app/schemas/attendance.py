@@ -36,10 +36,12 @@ class AttendanceOut(BaseModel):
     section: Optional[str]
     date: date
     time_in: Optional[time]
+    time_out: Optional[time] = None
     status: AttendanceStatus
     scanned_by: Optional[str]
     scan_method: str
     notes: Optional[str]
+    photo_url: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -51,3 +53,5 @@ class ScanResponse(BaseModel):
     message: str
     record: Optional[AttendanceOut] = None
     duplicate: bool = False
+    photo_url: Optional[str] = None
+

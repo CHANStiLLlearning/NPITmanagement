@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -20,13 +20,15 @@ import {
   BarChart3,
   PieChart,
   Activity,
-  LogOut
+  LogOut,
+  UserCircle2,
 } from 'lucide-react';
 import { NPITLogo } from '@/components/common/NPITLogo';
 import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Dashboard', khmer: 'ទំព័រដើម', href: '/dashboard', icon: LayoutDashboard, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
+  { name: 'My Profile', khmer: 'គណនីរបស់ខ្ញុំ', href: '/profile', icon: UserCircle2, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
   { name: 'School Settings', khmer: 'ការកំណត់សាលា', href: '/settings', icon: Settings, allowedRoles: ['super_admin', 'admin'] },
   { name: 'Users', khmer: 'អ្នកប្រើប្រាស់', href: '/users', icon: Users, allowedRoles: ['super_admin'] },
   { name: 'Teachers', khmer: 'លោកគ្រូ-អ្នកគ្រូ', href: '/teachers', icon: UserSquare2, allowedRoles: ['super_admin', 'admin', 'principal'] },
@@ -43,6 +45,7 @@ const navigation = [
 
 export function Sidebar() {
   const { logout, user } = useAuth();
+  const navigate = useNavigate();
   const role = user?.role || 'student';
 
   const filteredNavigation = navigation.filter(item => item.allowedRoles.includes(role));
@@ -89,8 +92,22 @@ export function Sidebar() {
 
       {/* User Footer */}
       <div className="border-t border-blue-100 p-4 bg-white">
-        <div className="flex items-center pb-3">
-          <div className="flex-1 truncate">
+        <button
+          onClick={() => navigate('/profile')}
+          className="flex items-center gap-3 w-full rounded-xl p-2 hover:bg-blue-50 transition-colors group mb-2"
+        >
+          {user?.photo_url ? (
+            <img
+              src={`http://localhost:8000${user.photo_url}`}
+              alt="Profile"
+              className="h-10 w-10 rounded-full object-cover border-2 border-blue-100 group-hover:border-[#2269ff] shrink-0 transition-all"
+            />
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-[#2269ff] to-blue-700 text-sm font-bold text-white shrink-0">
+              {user?.first_name?.[0] ?? user?.email?.[0]?.toUpperCase() ?? 'U'}
+            </div>
+          )}
+          <div className="flex-1 truncate text-left">
             <p className="truncate text-sm font-bold text-[#0a1f44]">
               {user?.first_name ? `${user.first_name} ${user.last_name}` : user?.email}
             </p>
@@ -98,7 +115,8 @@ export function Sidebar() {
               {user?.role?.replace('_', ' ')}
             </p>
           </div>
-        </div>
+          <UserCircle2 className="h-4 w-4 text-slate-400 group-hover:text-[#2269ff] shrink-0 transition-colors" />
+        </button>
         <Button
           variant="outline"
           size="sm"
