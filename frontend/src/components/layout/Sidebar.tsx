@@ -22,23 +22,19 @@ import {
   Activity,
   LogOut
 } from 'lucide-react';
-import { NPITLogo } from '@/components/NPITLogo';
+import { NPITLogo } from '@/components/common/NPITLogo';
 import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Dashboard', khmer: 'ទំព័រដើម', href: '/dashboard', icon: LayoutDashboard, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
   { name: 'School Settings', khmer: 'ការកំណត់សាលា', href: '/settings', icon: Settings, allowedRoles: ['super_admin', 'admin'] },
-  { name: 'Academic Year', khmer: 'ឆ្នាំសិក្សា', href: '/academic-year', icon: CalendarDays, allowedRoles: ['super_admin', 'admin'] },
   { name: 'Users', khmer: 'អ្នកប្រើប្រាស់', href: '/users', icon: Users, allowedRoles: ['super_admin'] },
   { name: 'Teachers', khmer: 'លោកគ្រូ-អ្នកគ្រូ', href: '/teachers', icon: UserSquare2, allowedRoles: ['super_admin', 'admin', 'principal'] },
   { name: 'Students', khmer: 'សិស្សានុសិស្ស', href: '/students', icon: GraduationCap, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher'] },
   { name: 'Parents', khmer: 'អាណាព្យាបាល', href: '/parents', icon: UsersRound, allowedRoles: ['super_admin', 'admin'] },
-  { name: 'Classes', khmer: 'ថ្នាក់រៀន', href: '/classes', icon: School, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher'] },
-  { name: 'Subjects', khmer: 'មុខវិជ្ជា', href: '/subjects', icon: BookOpen, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student'] },
   { name: 'Attendance', khmer: 'វត្តមានសិស្ស', href: '/attendance', icon: CheckSquare, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
   { name: 'QR Attendance', khmer: 'ស្កេន QR វត្តមាន', href: '/qr-attendance', icon: QrCode, allowedRoles: ['super_admin', 'admin', 'teacher', 'student'] },
   { name: 'Teaching Reports', khmer: 'របាយការណ៍បង្រៀន', href: '/teaching-reports', icon: FileText, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher'] },
-  { name: 'Timetable', khmer: 'កាលវិភាគសិក្សា', href: '/timetable', icon: Clock, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
   { name: 'Scores', khmer: 'ពិន្ទុ & និទ្ទេស', href: '/scores', icon: Award, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
   { name: 'Reports', khmer: 'របាយការណ៍សរុប', href: '/reports', icon: BarChart3, allowedRoles: ['super_admin', 'admin', 'principal', 'student', 'parent'] },
   { name: 'Analytics', khmer: 'វិភាគទិន្នន័យ', href: '/analytics', icon: PieChart, allowedRoles: ['super_admin', 'admin', 'principal'] },

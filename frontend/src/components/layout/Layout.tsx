@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
-import GlobalSearchModal from './GlobalSearchModal';
-import { Breadcrumbs } from './Breadcrumbs';
+import GlobalSearchModal from '../common/GlobalSearchModal';
+import { Breadcrumbs } from '../common/Breadcrumbs';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Search, LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';

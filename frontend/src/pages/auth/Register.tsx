@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { GraduationCap, Users, AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
-import { NPITLogo } from '@/components/NPITLogo';
+import { NPITLogo } from '@/components/common/NPITLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Role = 'student' | 'parent';

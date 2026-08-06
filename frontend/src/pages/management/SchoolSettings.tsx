@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { NPITLogo } from '@/components/NPITLogo';
+import { Layout } from '@/components/layout/Layout';
+import { NPITLogo } from '@/components/common/NPITLogo';
 import { Building2, Mail, Phone, MapPin, Save, CheckCircle2, Globe, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

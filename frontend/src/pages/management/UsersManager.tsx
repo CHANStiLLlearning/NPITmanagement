@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout } from '@/components/Layout';
+import { Layout } from '@/components/layout/Layout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { Users, UserPlus, Search, ShieldCheck, Mail, Trash2, Edit, RefreshCw } from 'lucide-react';

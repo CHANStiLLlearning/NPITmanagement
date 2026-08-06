@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Layout } from '@/components/Layout';
+import { Layout } from '@/components/layout/Layout';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';

@@ -33,20 +33,18 @@ def read_root():
 import os
 from fastapi.staticfiles import StaticFiles
 
+from app.api.v1.api import api_router
 from app.api import auth, users, students, teachers, attendance, teaching_reports, scores, academic, analytics, files, search, audit_log, reports
-from app.models import student as student_model
-from app.models import teacher as teacher_model
-from app.models import attendance as attendance_model
-from app.models import teaching_report as teaching_report_model
-from app.models import score as score_model
-from app.models import academic as academic_model
-from app.models import audit_log as audit_log_model
 
 # Mount uploads static directory
 uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/static/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
+# Mount API V1 router
+app.include_router(api_router, prefix="/api/v1")
+
+# Mount legacy root routes for seamless compatibility
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(students.router, prefix="/students", tags=["Students"])

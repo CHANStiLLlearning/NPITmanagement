@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { ShieldCheck, UserCheck, GraduationCap, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
-import { NPITLogo } from '@/components/NPITLogo';
+import { NPITLogo } from '@/components/common/NPITLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Floating particle component

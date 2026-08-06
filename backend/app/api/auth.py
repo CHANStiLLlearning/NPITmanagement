@@ -168,6 +168,20 @@ def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)
     )
     from app.crud.user import create_user
     user = create_user(db, user_in)
+    
+    if user.role == RoleEnum.student:
+        from app.schemas.student import StudentCreate
+        from app.crud.student import create_student
+        try:
+            student_in = StudentCreate(
+                first_name=user.first_name,
+                last_name=user.last_name,
+                email=user.email,
+            )
+            create_student(db, student_in)
+        except Exception as e:
+            print(f"Failed to create student profile for user {user.email}: {e}")
+
     log_action(
         db,
         user_email=user.email,
