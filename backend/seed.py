@@ -98,24 +98,8 @@ def seed_database():
                 if not db.query(User).filter(User.email == email).first():
                     db.add(User(email=email, hashed_password=get_password_hash("teacher123"), first_name=fn, last_name=ln, role=RoleEnum.teacher))
 
-        # 6. Sample Students
-        students_data = [
-            ("STU-2025-0001", "Alex", "Johnson", "Grade 10", "Section A", "alex.johnson@student.com", "Mark Johnson", "0123456789"),
-            ("STU-2025-0002", "Sophia", "Williams", "Grade 10", "Section A", "sophia.williams@student.com", "David Williams", "0987654321"),
-            ("STU-2025-0003", "Ethan", "Davis", "Grade 11", "Section A", "ethan.davis@student.com", "Laura Davis", "0112233445"),
-            ("STU-2025-0004", "Olivia", "Martinez", "Grade 12", "Section A", "olivia.martinez@student.com", "Carlos Martinez", "0556677889"),
-        ]
-        for sid, fn, ln, cname, sec, email, gname, gphone in students_data:
-            if not db.query(Student).filter(Student.student_id == sid).first():
-                st = Student(
-                    student_id=sid, first_name=fn, last_name=ln, class_name=cname, section=sec,
-                    email=email, guardian_name=gname, guardian_phone=gphone,
-                    qr_code=generate_qr(sid), is_active=True
-                )
-                db.add(st)
-
         db.commit()
-        print("[OK] Database successfully seeded with Academic Structure, Teachers, and Students!")
+        print("[OK] Database successfully seeded with Academic Structure!")
     except Exception as e:
         db.rollback()
         print(f"Error seeding database: {e}")

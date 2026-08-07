@@ -79,29 +79,7 @@ def get_analytics_overview(
                 "issue": "Low exam scores" if (c.weighted_total or 0) < 60 else "Borderline performance",
             })
     else:
-        # Seeded demo values for initial view
-        avg_gpa = 3.42
-        students_db = db.query(Student).limit(10).all()
-        if students_db:
-            for s in students_db[:5]:
-                top_students.append({
-                    "sid": s.student_id,
-                    "name": f"{s.first_name} {s.last_name}",
-                    "class_name": s.class_name or "Grade 10",
-                    "score": 92.5 + (s.id % 7),
-                    "grade": "A",
-                    "gpa": 3.9,
-                })
-            for s in reversed(students_db[-5:]):
-                low_students.append({
-                    "sid": s.student_id,
-                    "name": f"{s.first_name} {s.last_name}",
-                    "class_name": s.class_name or "Grade 10",
-                    "score": 54.0 + (s.id % 8),
-                    "grade": "D+",
-                    "gpa": 1.4,
-                    "issue": "Needs academic support in Science",
-                })
+        avg_gpa = 0.0
 
     # 3. Subject Performance
     subjects = ["Mathematics", "Science", "English", "History", "Physics", "Chemistry"]
@@ -114,29 +92,19 @@ def get_analytics_overview(
         if cat_ids:
             avg_res = db.query(func.avg(StudentScore.score)).filter(StudentScore.category_id.in_(cat_ids)).scalar()
             avg_score = round(float(avg_res), 1) if avg_res else 0
-        if not avg_score:
-            avg_score = [84.5, 78.2, 88.0, 81.4, 75.6, 82.1][idx % 6]
         subject_perf.append({"subject": subj, "average": avg_score})
 
     # 4. Teacher Performance
     teachers = db.query(Teacher).all()
     teacher_perf = []
-    if teachers:
-        for t in teachers[:6]:
-            reports_count = db.query(TeachingReport).filter(TeachingReport.teacher_email == t.email).count()
-            teacher_perf.append({
-                "name": f"{t.first_name} {t.last_name}",
-                "department": t.department or "General",
-                "rating": t.performance_rating or 4.5,
-                "reports_submitted": reports_count,
-            })
-    else:
-        teacher_perf = [
-            {"name": "Dr. Sarah Jenkins", "department": "Mathematics", "rating": 4.9, "reports_submitted": 14},
-            {"name": "Prof. Robert Chen", "department": "Science", "rating": 4.7, "reports_submitted": 12},
-            {"name": "Emma Watson", "department": "English", "rating": 4.8, "reports_submitted": 18},
-            {"name": "Michael Brown", "department": "History", "rating": 4.5, "reports_submitted": 10},
-        ]
+    for t in teachers[:6]:
+        reports_count = db.query(TeachingReport).filter(TeachingReport.teacher_email == t.email).count()
+        teacher_perf.append({
+            "name": f"{t.first_name} {t.last_name}",
+            "department": t.department or "General",
+            "rating": t.performance_rating or 5.0,
+            "reports_submitted": reports_count,
+        })
 
     # 5. Grade Distribution
     grade_dist = {"A": 35, "B": 40, "C": 15, "D": 7, "F": 3}

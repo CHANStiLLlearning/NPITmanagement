@@ -179,6 +179,63 @@ export default function Dashboard() {
     refetchInterval: 10000,
   });
 
+  const { data: summary } = useQuery({
+    queryKey: ['school-summary-dashboard'],
+    queryFn: async () => (await axios.get('/reports-center/summary')).data,
+    refetchInterval: 10000,
+  });
+
+  const dynamicStats = [
+    {
+      id: 1,
+      label: "អត្រាវត្តមានសិស្សប្រចាំថ្ងៃ",
+      sublabel: "Today's Attendance Rate",
+      value: summary ? `${summary.attendance_rate}%` : "0%",
+      subtitle: summary ? `សរុបស្កេន ${summary.total_attendance_scans} លើក` : "ស្កេនក្នុងប្រព័ន្ធ",
+      icon: UserCheck,
+      badgeColor: "bg-blue-50 text-[#2269ff] border-blue-200",
+      barColor: "bg-[#2269ff]",
+      percent: summary ? Math.round(summary.attendance_rate) : 0,
+      change: "ទិន្នន័យជាក់ស្តែង",
+    },
+    {
+      id: 2,
+      label: "ចំនួនសិស្សសរុប",
+      sublabel: "Total Enrolled Students",
+      value: summary ? `${summary.total_students}` : "0",
+      subtitle: "ឆ្នាំសិក្សា ២០២៥ - ២០២៦",
+      icon: Users,
+      badgeColor: "bg-blue-50 text-[#2269ff] border-blue-200",
+      barColor: "bg-[#2269ff]",
+      percent: 100,
+      change: "សិស្សសកម្មក្នុង DB",
+    },
+    {
+      id: 3,
+      label: "លោកគ្រូ-អ្នកគ្រូ",
+      sublabel: "Active Faculty Staff",
+      value: summary ? `${summary.total_teachers}` : "0",
+      subtitle: "បុគ្គលិកបង្រៀនសកម្ម",
+      icon: GraduationCap,
+      badgeColor: "bg-amber-50 text-[#ca8a04] border-amber-200",
+      barColor: "bg-[#eab308]",
+      percent: 100,
+      change: "លោកគ្រូ-អ្នកគ្រូ សកម្ម",
+    },
+    {
+      id: 4,
+      label: "ពិន្ទុមធ្យមភាគ (GPA)",
+      sublabel: "Institutional Average GPA",
+      value: summary ? `${summary.average_gpa}` : "0.00",
+      subtitle: "គិតលើពិន្ទុអតិបរមា ៤.០០",
+      icon: Award,
+      badgeColor: "bg-red-50 text-[#ec171c] border-red-200",
+      barColor: "bg-[#ec171c]",
+      percent: summary ? Math.round((summary.average_gpa / 4.0) * 100) : 0,
+      change: "មធ្យមភាគសរុប",
+    },
+  ];
+
   const displayLogs = rawSystemLogs.length > 0
     ? rawSystemLogs.map((l) => {
         const { tag, tagColor } = getModuleBadge(l.module, l.action);
@@ -386,7 +443,7 @@ export default function Dashboard() {
 
         {/* 4 Minimalist Metric Cards - Clean Bold Values */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((s) => (
+          {dynamicStats.map((s) => (
             <div key={s.id} className="rounded-2xl border border-blue-100/90 bg-white p-6 shadow-2xs hover:border-blue-300 transition-all">
               <div className="flex items-center justify-between">
                 <div>

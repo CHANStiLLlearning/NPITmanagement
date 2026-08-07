@@ -6,19 +6,38 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from main import app
-from app.db.session import Base, engine, SessionLocal
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.db.session import Base, get_db
 from app.models.user import User, RoleEnum
 from app.core.security import get_password_hash
 
+from sqlalchemy.pool import StaticPool
+
+SQLALCHEMY_TEST_DATABASE_URL = "sqlite://"
+test_engine = create_engine(
+    SQLALCHEMY_TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
+
 client = TestClient(app)
-
 auth_headers = {}
-
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_test_db():
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    Base.metadata.create_all(bind=test_engine)
+    db = TestingSessionLocal()
     if not db.query(User).filter(User.email == "admin@school.com").first():
         db.add(User(
             email="admin@school.com",
@@ -32,6 +51,7 @@ def setup_test_db():
         db.commit()
     db.close()
     yield
+    Base.metadata.drop_all(bind=test_engine)
 
 
 def test_read_root():
