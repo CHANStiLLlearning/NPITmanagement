@@ -15,6 +15,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
+ENV PORT=10000
+EXPOSE 10000
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 4"]
+CMD ["sh", "-c", "python -m uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}"]

@@ -26,6 +26,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.db.session import engine, Base, SessionLocal
+from app.models.user import User, RoleEnum
+from app.core.security import get_password_hash
+
+@app.on_event("startup")
+def on_startup():
+    try:
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            admin = db.query(User).filter(User.email == "admin@school.com").first()
+            if not admin:
+                admin = User(
+                    email="admin@school.com",
+                    hashed_password=get_password_hash("admin123"),
+                    first_name="Super",
+                    last_name="Admin",
+                    role=RoleEnum.super_admin,
+                    is_active=True,
+                    is_superuser=True,
+                )
+                db.add(admin)
+                db.commit()
+                print("[STARTUP] Auto-created Super Admin: admin@school.com / admin123")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[STARTUP DB ERROR] {e}")
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the School Management System API"}
