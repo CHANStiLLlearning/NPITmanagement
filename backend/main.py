@@ -8,13 +8,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+import os
+
 # CORS configuration
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
-]
+cors_env = os.getenv("CORS_ORIGINS", "").strip()
+if cors_env and cors_env != "*":
+    origins = [o.strip() for o in cors_env.split(",") if o.strip()]
+    allow_credentials = True
+else:
+    origins = ["*"]
+    allow_credentials = False
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimiterMiddleware)
@@ -22,7 +25,7 @@ app.add_middleware(RateLimiterMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
 )
