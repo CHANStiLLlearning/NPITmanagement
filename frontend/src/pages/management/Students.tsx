@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Plus, Pencil, Trash2, Eye, Upload,
   FileSpreadsheet, X, User, Phone, MapPin, BookOpen,
-  HeartPulse, ShieldAlert, QrCode, Filter, ChevronDown
+  QrCode, Filter, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AvatarUpload } from '@/components/common/AvatarUpload';
@@ -50,7 +50,7 @@ const emptyForm: Partial<Student> = {
   blood_type: '', allergies: '', medical_conditions: '', medical_notes: '',
 };
 
-const TABS = ['Personal', 'Academic', 'Guardian', 'Emergency', 'Medical'];
+const TABS = ['Personal', 'Academic', 'Guardian'];
 const statusColors: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-700',
   inactive: 'bg-slate-100 text-slate-600',
@@ -347,15 +347,6 @@ export default function Students() {
                     <ProfileRow label="Phone" value={showProfile.guardian_phone} />
                     <ProfileRow label="Relationship" value={showProfile.guardian_relationship} />
                   </ProfileSection>
-                  <ProfileSection icon={ShieldAlert} title="Emergency Contact">
-                    <ProfileRow label="Name" value={showProfile.emergency_contact_name} />
-                    <ProfileRow label="Phone" value={showProfile.emergency_contact_phone} />
-                  </ProfileSection>
-                  <ProfileSection icon={HeartPulse} title="Medical">
-                    <ProfileRow label="Allergies" value={showProfile.allergies} />
-                    <ProfileRow label="Conditions" value={showProfile.medical_conditions} />
-                    <ProfileRow label="Notes" value={showProfile.medical_notes} />
-                  </ProfileSection>
                 </div>
               </div>
             </Modal>
@@ -416,24 +407,6 @@ export default function Students() {
                   <FormField label="Relationship" value={formData.guardian_relationship} onChange={v => handleField('guardian_relationship', v)} />
                   <FormField label="Guardian Phone" value={formData.guardian_phone} onChange={v => handleField('guardian_phone', v)} />
                   <FormField label="Guardian Email" type="email" value={formData.guardian_email} onChange={v => handleField('guardian_email', v)} />
-                </>}
-                {formTab === 3 && <>
-                  <FormField label="Emergency Contact Name" value={formData.emergency_contact_name} onChange={v => handleField('emergency_contact_name', v)} />
-                  <FormField label="Phone" value={formData.emergency_contact_phone} onChange={v => handleField('emergency_contact_phone', v)} />
-                  <FormField label="Relationship" value={formData.emergency_contact_relationship} onChange={v => handleField('emergency_contact_relationship', v)} />
-                </>}
-                {formTab === 4 && <>
-                  <FormSelect label="Blood Type" value={formData.blood_type} onChange={v => handleField('blood_type', v)}
-                    options={['A+','A-','B+','B-','AB+','AB-','O+','O-']} />
-                  <div className="sm:col-span-2">
-                    <FormArea label="Allergies" value={formData.allergies} onChange={v => handleField('allergies', v)} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FormArea label="Medical Conditions" value={formData.medical_conditions} onChange={v => handleField('medical_conditions', v)} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FormArea label="Medical Notes" value={formData.medical_notes} onChange={v => handleField('medical_notes', v)} />
-                  </div>
                 </>}
               </div>
 

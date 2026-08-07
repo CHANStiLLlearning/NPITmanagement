@@ -405,10 +405,6 @@ export default function Teachers() {
                     <ProfileRow label="Bank" value={showProfile.bank_name} />
                     <ProfileRow label="Account" value={showProfile.bank_account} />
                   </ProfileSection>
-                  <ProfileSection icon={Phone} title="Emergency Contact">
-                    <ProfileRow label="Name" value={showProfile.emergency_contact_name} />
-                    <ProfileRow label="Phone" value={showProfile.emergency_contact_phone} />
-                  </ProfileSection>
                 </div>
               </div>
             </Modal>
@@ -452,8 +448,6 @@ export default function Teachers() {
                   <FormField label="Email" type="email" value={formData.email} onChange={v => handleField('email', v)} />
                   <FormField label="Phone" value={formData.phone} onChange={v => handleField('phone', v)} />
                   <div className="sm:col-span-2"><FormField label="Address" value={formData.address} onChange={v => handleField('address', v)} /></div>
-                  <FormField label="Emergency Contact Name" value={formData.emergency_contact_name} onChange={v => handleField('emergency_contact_name', v)} />
-                  <FormField label="Emergency Contact Phone" value={formData.emergency_contact_phone} onChange={v => handleField('emergency_contact_phone', v)} />
                 </>}
 
                 {formTab === 1 && <>
