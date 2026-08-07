@@ -166,11 +166,12 @@ def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)
         )
     from app.schemas.user import UserCreate
     from app.models.user import RoleEnum
+    from app.core.security_middleware import sanitize_xss
     user_in = UserCreate(
         email=clean_email,
         password=request_data.password,
-        first_name=request_data.first_name.strip(),
-        last_name=request_data.last_name.strip(),
+        first_name=sanitize_xss(request_data.first_name),
+        last_name=sanitize_xss(request_data.last_name),
         role=RoleEnum(request_data.role),
         is_active=True,
     )

@@ -56,9 +56,9 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         now = time.time()
         window_seconds = 60.0
 
-        # Define limits
-        is_auth = request.url.path.startswith("/auth/login")
-        max_allowed = 15 if is_auth else 200
+        # Define limits for sensitive endpoints
+        is_auth = request.url.path.startswith(("/auth/", "/api/v1/auth/"))
+        max_allowed = 10 if is_auth else 200
 
         # Clean old timestamps outside the window
         self.requests[client_ip] = [

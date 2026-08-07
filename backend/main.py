@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.security_middleware import SecurityHeadersMiddleware, RateLimiterMiddleware
 
 app = FastAPI(
     title="School Management System API",
@@ -11,19 +12,19 @@ app = FastAPI(
 origins = [
     "http://localhost:5173",
     "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
 ]
-
-from app.core.security_middleware import SecurityHeadersMiddleware, RateLimiterMiddleware
 
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimiterMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"],
 )
 
 from app.db.session import engine, Base, SessionLocal
