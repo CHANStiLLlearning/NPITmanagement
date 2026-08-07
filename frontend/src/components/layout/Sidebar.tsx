@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Dashboard', khmer: 'ទំព័រដើម', href: '/dashboard', icon: LayoutDashboard, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
+  { name: 'Academic', khmer: 'កិច្ចការសិក្សា', href: '/academic-year', icon: School, allowedRoles: ['super_admin', 'admin', 'principal'] },
   { name: 'My Profile', khmer: 'គណនីរបស់ខ្ញុំ', href: '/profile', icon: UserCircle2, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
   { name: 'School Settings', khmer: 'ការកំណត់សាលា', href: '/settings', icon: Settings, allowedRoles: ['super_admin', 'admin'] },
   { name: 'Users', khmer: 'អ្នកប្រើប្រាស់', href: '/users', icon: Users, allowedRoles: ['super_admin'] },

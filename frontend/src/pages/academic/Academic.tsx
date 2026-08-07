@@ -21,10 +21,8 @@ interface TimetableEntry { id: number; day_of_week: string; period_number: numbe
 interface Holiday { id: number; title: string; start_date: string; end_date: string; type: string; description?: string; }
 
 const TABS = [
-  { label: 'ឆ្នាំសិក្សា & ឆមាស (Academic Years)', icon: Calendar, path: '/academic-year' },
-  { label: 'មុខវិជ្ជា (Subjects Curriculum)', icon: BookOpen, path: '/subjects' },
-  { label: 'ការបែងចែកគ្រូបង្រៀន (Teacher Assignments)', icon: Users, path: '/teacher-assignments' },
-  { label: 'កាលវិភាគសិក្សា (Timetable Matrix)', icon: Clock, path: '/timetable' },
+  { label: 'ឆ្នាំសិក្សា & ឆមាស (Academic Years & Semesters)', icon: Calendar, path: '/academic-year' },
+  { label: 'មុខវិជ្ជាសិក្សា (Subject Curriculum)', icon: BookOpen, path: '/subjects' },
 ];
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -37,9 +35,7 @@ export default function Academic() {
   // Sync active tab with URL path
   useEffect(() => {
     const pathname = location.pathname;
-    if (pathname.includes('classes')) setActiveTab(1);
-    else if (pathname.includes('subjects')) setActiveTab(2);
-    else if (pathname.includes('timetable')) setActiveTab(4);
+    if (pathname.includes('subjects')) setActiveTab(1);
     else setActiveTab(0);
   }, [location.pathname]);
 
