@@ -1,8 +1,7 @@
-FROM python:3.13-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies required for PostgreSQL adapter (psycopg2) compilation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
