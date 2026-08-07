@@ -5,11 +5,12 @@ services:
     image: postgres:15-alpine
     container_name: school_db
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: adminpassword
-      POSTGRES_DB: school_db
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-adminpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-school_db}
     ports:
-      - "5432:5432"
+      # Restrict database port access to local loopback only for production security
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
@@ -21,7 +22,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://admin:adminpassword@db:5432/school_db
+      DATABASE_URL: ${DATABASE_URL:-postgresql://admin:adminpassword@db:5432/school_db}
+      SECRET_KEY: ${SECRET_KEY:-super-secret-production-key-change-this}
     depends_on:
       - db
     volumes:
