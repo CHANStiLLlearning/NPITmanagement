@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getMediaUrl } from '@/config/constants';
 
 interface AvatarUploadProps {
   currentUrl?: string | null;
@@ -22,7 +23,7 @@ export function AvatarUpload({ currentUrl, name, size = 88, onUpload, disabled }
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
-  const displayUrl = preview || (currentUrl ? `http://localhost:8000${currentUrl}` : null);
+  const displayUrl = preview || getMediaUrl(currentUrl || undefined);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

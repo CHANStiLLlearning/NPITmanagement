@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { getMediaUrl } from '@/config/constants';
 import {
   LayoutDashboard,
   Settings,
@@ -98,7 +99,7 @@ export function Sidebar() {
         >
           {user?.photo_url ? (
             <img
-              src={`http://localhost:8000${user.photo_url}`}
+              src={getMediaUrl(user.photo_url)}
               alt="Profile"
               className="h-10 w-10 rounded-full object-cover border-2 border-blue-100 group-hover:border-[#2269ff] shrink-0 transition-all"
             />

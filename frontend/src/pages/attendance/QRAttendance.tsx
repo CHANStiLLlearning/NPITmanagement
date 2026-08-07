@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { NPITLogo } from '@/components/common/NPITLogo';
 import { useAuth } from '@/contexts/AuthContext';
+import { getMediaUrl } from '@/config/constants';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -402,7 +403,7 @@ export default function QRAttendance() {
             </div>
             <div class="body">
               <div class="photo-box">
-                ${s.photo_url ? `<img src="http://localhost:8000${s.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">` : s.name[0]}
+                ${s.photo_url ? `<img src="${getMediaUrl(s.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">` : s.name[0]}
               </div>
               <div class="details">
                 <div class="name">${s.name}</div>
@@ -681,7 +682,7 @@ export default function QRAttendance() {
                               }}
                             />
                             {st.photo_url ? (
-                              <img src={`http://localhost:8000${st.photo_url}`} alt="" className="w-full h-full object-cover" />
+                              <img src={getMediaUrl(st.photo_url)} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-xs font-black text-[#2269ff] flex items-center justify-center h-full">
                                 {st.name[0]}
@@ -746,7 +747,7 @@ export default function QRAttendance() {
                     {feedback.studentName ? (
                       <div className="flex items-center gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-white/60 shadow-sm">
                         {feedback.photoUrl ? (
-                          <img src={`http://localhost:8000${feedback.photoUrl}`} alt="" className="h-16 w-16 rounded-2xl object-cover border-2 border-blue-200 shrink-0 shadow-sm" />
+                          <img src={getMediaUrl(feedback.photoUrl)} alt="" className="h-16 w-16 rounded-2xl object-cover border-2 border-blue-200 shrink-0 shadow-sm" />
                         ) : (
                           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#2269ff] to-blue-800 text-xl font-black text-white shrink-0 shadow-sm">
                             {feedback.studentName[0]}
@@ -806,7 +807,7 @@ export default function QRAttendance() {
                           className="flex items-center gap-3 rounded-2xl border border-blue-50 bg-slate-50/60 p-3 hover:bg-blue-50/50 transition-colors"
                         >
                           {r.photo_url ? (
-                            <img src={`http://localhost:8000${r.photo_url}`} alt="" className="h-10 w-10 rounded-xl object-cover border border-blue-100 shrink-0" />
+                            <img src={getMediaUrl(r.photo_url)} alt="" className="h-10 w-10 rounded-xl object-cover border border-blue-100 shrink-0" />
                           ) : (
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-[#2269ff] to-blue-800 text-xs font-black text-white shrink-0">
                               {r.student_name[0]}
@@ -906,7 +907,7 @@ export default function QRAttendance() {
                       <tr key={r.id} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-6 py-4 text-[#0a1f44] flex items-center gap-3">
                           {r.photo_url ? (
-                            <img src={`http://localhost:8000${r.photo_url}`} alt="" className="h-8 w-8 rounded-full object-cover border border-blue-100" />
+                            <img src={getMediaUrl(r.photo_url)} alt="" className="h-8 w-8 rounded-full object-cover border border-blue-100" />
                           ) : (
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2269ff] text-white text-xs font-black">
                               {r.student_name[0]}
@@ -1034,7 +1035,7 @@ export default function QRAttendance() {
                         }}
                       />
                       {s.photo_url ? (
-                        <img src={`http://localhost:8000${s.photo_url}`} alt={s.name} className="w-full h-full object-cover" />
+                        <img src={getMediaUrl(s.photo_url)} alt={s.name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-2xl font-black text-white">{s.name[0]}</span>
                       )}
@@ -1151,7 +1152,7 @@ export default function QRAttendance() {
                     {feedback.studentId && (
                       <div className="bg-black/40 p-6 rounded-2xl border border-white/10 flex items-center gap-5">
                         {feedback.photoUrl ? (
-                          <img src={`http://localhost:8000${feedback.photoUrl}`} alt="" className="h-24 w-24 rounded-2xl object-cover border-2 border-white shrink-0 shadow-lg" />
+                          <img src={getMediaUrl(feedback.photoUrl)} alt="" className="h-24 w-24 rounded-2xl object-cover border-2 border-white shrink-0 shadow-lg" />
                         ) : (
                           <div className="h-24 w-24 rounded-2xl bg-[#2269ff] text-white text-3xl font-black flex items-center justify-center shrink-0">
                             {feedback.studentName?.[0]}

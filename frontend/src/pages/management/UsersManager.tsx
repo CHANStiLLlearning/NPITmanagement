@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Users, UserPlus, Search, ShieldCheck, Mail, Trash2, Edit, RefreshCw, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AvatarUpload } from '@/components/common/AvatarUpload';
+import { getMediaUrl } from '@/config/constants';
 
 interface UserItem {
   id: number;
@@ -15,7 +16,6 @@ interface UserItem {
   is_active: boolean;
   photo_url?: string;
 }
-
 
 export default function UsersManager() {
   const queryClient = useQueryClient();
@@ -35,7 +35,7 @@ export default function UsersManager() {
       if (search) params.append('search', search);
       if (roleFilter) params.append('role', roleFilter);
       const token = localStorage.getItem('access_token');
-      const res = await axios.get(`http://localhost:8000/users/?${params}`, {
+      const res = await axios.get(`/users/?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       return res.data;
@@ -45,7 +45,7 @@ export default function UsersManager() {
   const createUserMutation = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem('access_token');
-      return await axios.post('http://localhost:8000/users/', {
+      return await axios.post('/users/', {
         email, password, first_name: firstName, last_name: lastName, role, is_active: true
       }, { headers: { Authorization: `Bearer ${token}` } });
     },
@@ -59,7 +59,7 @@ export default function UsersManager() {
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
       const token = localStorage.getItem('access_token');
-      return await axios.delete(`http://localhost:8000/users/${id}`, {
+      return await axios.delete(`/users/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
     },
@@ -72,7 +72,7 @@ export default function UsersManager() {
     mutationFn: async ({ id, file }: { id: number; file: File }) => {
       const token = localStorage.getItem('access_token');
       const fd = new FormData(); fd.append('file', file);
-      const { data } = await axios.post(`http://localhost:8000/users/${id}/avatar`, fd, {
+      const { data } = await axios.post(`/users/${id}/avatar`, fd, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
       });
       return data;
@@ -164,7 +164,7 @@ export default function UsersManager() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {u.photo_url ? (
-                        <img src={`http://localhost:8000${u.photo_url}`} alt="" className="h-9 w-9 rounded-full object-cover border-2 border-blue-100 shrink-0" />
+                        <img src={getMediaUrl(u.photo_url)} alt="" className="h-9 w-9 rounded-full object-cover border-2 border-blue-100 shrink-0" />
                       ) : (
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#2269ff] to-blue-800 text-xs font-black text-white shrink-0">
                           {u.first_name?.[0] ?? u.email[0].toUpperCase()}{u.last_name?.[0] ?? ''}

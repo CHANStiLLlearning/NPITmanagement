@@ -6,6 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Search, LogOut, Sun, Moon, UserCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { getMediaUrl } from '@/config/constants';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -65,7 +66,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               >
                 {user?.photo_url ? (
                   <img
-                    src={`http://localhost:8000${user.photo_url}`}
+                    src={getMediaUrl(user.photo_url)}
                     alt="Profile"
                     className="h-9 w-9 rounded-full object-cover border-2 border-blue-200 group-hover:border-[#2269ff] transition-all shadow-sm"
                   />

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AvatarUpload } from '@/components/common/AvatarUpload';
+import { getMediaUrl } from '@/config/constants';
 
 // ─── Types ───────────────────────────────────────────
 interface Teacher {
@@ -285,7 +286,7 @@ export default function Teachers() {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           {t.photo_url ? (
-                            <img src={`http://localhost:8000${t.photo_url}`} alt="" className="h-10 w-10 rounded-full object-cover border-2 border-violet-100 shrink-0" />
+                            <img src={getMediaUrl(t.photo_url)} alt="" className="h-10 w-10 rounded-full object-cover border-2 border-violet-100 shrink-0" />
                           ) : (
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-bold text-white shrink-0">
                               {t.first_name[0]}{t.last_name[0]}

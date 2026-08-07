@@ -42,7 +42,7 @@ export default function SystemLogs() {
       if (search)       params.search = search;
       if (actionFilter) params.action = actionFilter;
       if (moduleFilter) params.module = moduleFilter;
-      const { data } = await axios.get('http://localhost:8000/system-logs/', { params });
+      const { data } = await axios.get('/system-logs/', { params });
       return Array.isArray(data) ? data : [];
     },
   });
@@ -52,7 +52,7 @@ export default function SystemLogs() {
     if (search)       params.append('search', search);
     if (actionFilter) params.append('action', actionFilter);
     if (moduleFilter) params.append('module', moduleFilter);
-    const res = await axios.get(`http://localhost:8000/system-logs/export/csv?${params}`, { responseType: 'blob' });
+    const res = await axios.get(`/system-logs/export/csv?${params}`, { responseType: 'blob' });
     const url = URL.createObjectURL(new Blob([res.data]));
     const a = document.createElement('a'); a.href = url; a.download = 'system_audit_logs.csv'; a.click();
   };

@@ -9,7 +9,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-adminpassword}
       POSTGRES_DB: ${POSTGRES_DB:-school_db}
     ports:
-      # Restrict database port access to local loopback only for production security
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -27,7 +26,7 @@ services:
     depends_on:
       - db
     volumes:
-      - ./backend:/app
+      - ./backend/uploads:/app/uploads
     restart: always
 
   frontend:
@@ -35,10 +34,7 @@ services:
       context: ./frontend
     container_name: school_frontend
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "80:80"
     depends_on:
       - backend
     restart: always

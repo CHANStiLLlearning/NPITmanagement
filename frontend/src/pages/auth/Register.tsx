@@ -70,7 +70,7 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await axios.post('http://localhost:8000/auth/register', {
+      await axios.post('/auth/register', {
         email:      form.email,
         password:   form.password,
         first_name: form.first_name,

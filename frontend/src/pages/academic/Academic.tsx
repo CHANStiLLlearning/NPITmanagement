@@ -46,37 +46,37 @@ export default function Academic() {
   // ── Queries ──
   const { data: years = [] } = useQuery<AcademicYear[]>({
     queryKey: ['academic-years'],
-    queryFn: async () => (await axios.get('http://localhost:8000/academic/academic-years')).data,
+    queryFn: async () => (await axios.get('/academic/academic-years')).data,
   });
 
   const { data: semesters = [] } = useQuery<Semester[]>({
     queryKey: ['semesters'],
-    queryFn: async () => (await axios.get('http://localhost:8000/academic/semesters')).data,
+    queryFn: async () => (await axios.get('/academic/semesters')).data,
   });
 
   const { data: grades = [] } = useQuery<Grade[]>({
     queryKey: ['grades'],
-    queryFn: async () => (await axios.get('http://localhost:8000/academic/grades')).data,
+    queryFn: async () => (await axios.get('/academic/grades')).data,
   });
 
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ['subjects'],
-    queryFn: async () => (await axios.get('http://localhost:8000/academic/subjects')).data,
+    queryFn: async () => (await axios.get('/academic/subjects')).data,
   });
 
   const { data: teacherAssignments = [] } = useQuery<TeacherAssignment[]>({
     queryKey: ['teacher-assignments'],
-    queryFn: async () => (await axios.get('http://localhost:8000/academic/teacher-assignments')).data,
+    queryFn: async () => (await axios.get('/academic/teacher-assignments')).data,
   });
 
   const { data: timetable = [] } = useQuery<TimetableEntry[]>({
     queryKey: ['timetable'],
-    queryFn: async () => (await axios.get('http://localhost:8000/academic/timetable')).data,
+    queryFn: async () => (await axios.get('/academic/timetable')).data,
   });
 
   const { data: holidays = [] } = useQuery<Holiday[]>({
     queryKey: ['holidays'],
-    queryFn: async () => (await axios.get('http://localhost:8000/academic/holidays')).data,
+    queryFn: async () => (await axios.get('/academic/holidays')).data,
   });
 
   // ── Forms Modal States ──
@@ -104,74 +104,74 @@ export default function Academic() {
 
   // ── Mutations ──
   const createAY = useMutation({
-    mutationFn: (d: typeof ayForm) => axios.post('http://localhost:8000/academic/academic-years', sanitize(d)),
+    mutationFn: (d: typeof ayForm) => axios.post('/academic/academic-years', sanitize(d)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['academic-years'] }); setModalType(null); },
   });
   const deleteAY = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:8000/academic/academic-years/${id}`),
+    mutationFn: (id: number) => axios.delete(`/academic/academic-years/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['academic-years'] }),
   });
 
   const createSem = useMutation({
-    mutationFn: (d: typeof semForm) => axios.post('http://localhost:8000/academic/semesters', sanitize(d)),
+    mutationFn: (d: typeof semForm) => axios.post('/academic/semesters', sanitize(d)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['semesters'] }); setModalType(null); },
   });
   const deleteSem = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:8000/academic/semesters/${id}`),
+    mutationFn: (id: number) => axios.delete(`/academic/semesters/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['semesters'] }),
   });
 
   const createGrade = useMutation({
-    mutationFn: (d: typeof gradeForm) => axios.post('http://localhost:8000/academic/grades', sanitize(d)),
+    mutationFn: (d: typeof gradeForm) => axios.post('/academic/grades', sanitize(d)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['grades'] }); setModalType(null); },
   });
   const deleteGrade = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:8000/academic/grades/${id}`),
+    mutationFn: (id: number) => axios.delete(`/academic/grades/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['grades'] }),
   });
 
   const createSection = useMutation({
-    mutationFn: (d: typeof sectionForm) => axios.post('http://localhost:8000/academic/sections', sanitize(d)),
+    mutationFn: (d: typeof sectionForm) => axios.post('/academic/sections', sanitize(d)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['grades'] }); setModalType(null); },
   });
   const deleteSection = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:8000/academic/sections/${id}`),
+    mutationFn: (id: number) => axios.delete(`/academic/sections/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['grades'] }),
   });
 
   const createSubject = useMutation({
-    mutationFn: (d: typeof subjectForm) => axios.post('http://localhost:8000/academic/subjects', sanitize(d)),
+    mutationFn: (d: typeof subjectForm) => axios.post('/academic/subjects', sanitize(d)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['subjects'] }); setModalType(null); },
   });
   const deleteSubject = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:8000/academic/subjects/${id}`),
+    mutationFn: (id: number) => axios.delete(`/academic/subjects/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subjects'] }),
   });
 
   const createAssignment = useMutation({
-    mutationFn: (d: typeof assignForm) => axios.post('http://localhost:8000/academic/teacher-assignments', sanitize(d)),
+    mutationFn: (d: typeof assignForm) => axios.post('/academic/teacher-assignments', sanitize(d)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] }); setModalType(null); },
   });
   const deleteAssignment = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:8000/academic/teacher-assignments/${id}`),
+    mutationFn: (id: number) => axios.delete(`/academic/teacher-assignments/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['teacher-assignments'] }),
   });
 
   const createTT = useMutation({
-    mutationFn: (d: typeof ttForm) => axios.post('http://localhost:8000/academic/timetable', sanitize(d)),
+    mutationFn: (d: typeof ttForm) => axios.post('/academic/timetable', sanitize(d)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['timetable'] }); setModalType(null); },
   });
   const deleteTT = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:8000/academic/timetable/${id}`),
+    mutationFn: (id: number) => axios.delete(`/academic/timetable/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['timetable'] }),
   });
 
   const createHoliday = useMutation({
-    mutationFn: (d: typeof holidayForm) => axios.post('http://localhost:8000/academic/holidays', sanitize(d)),
+    mutationFn: (d: typeof holidayForm) => axios.post('/academic/holidays', sanitize(d)),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['holidays'] }); setModalType(null); },
   });
   const deleteHoliday = useMutation({
-    mutationFn: (id: number) => axios.delete(`http://localhost:8000/academic/holidays/${id}`),
+    mutationFn: (id: number) => axios.delete(`/academic/holidays/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['holidays'] }),
   });
 
