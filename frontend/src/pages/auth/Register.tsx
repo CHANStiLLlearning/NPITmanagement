@@ -69,16 +69,17 @@ export default function Register() {
       return;
     }
     setLoading(true);
+    const cleanEmail = form.email.trim();
     try {
       await axios.post('/auth/register', {
-        email:      form.email,
+        email:      cleanEmail,
         password:   form.password,
-        first_name: form.first_name,
-        last_name:  form.last_name,
+        first_name: form.first_name.trim(),
+        last_name:  form.last_name.trim(),
         role,
       });
       setSuccess('Account created! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate('/login', { state: { email: cleanEmail } }), 1500);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Registration failed. Please try again.');
     } finally {

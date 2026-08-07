@@ -3,19 +3,25 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash
 
+from sqlalchemy import func
+
 def get_user(db: Session, user_id: int):
     return db.query(User).filter(User.id == user_id).first()
 
 def get_user_by_email(db: Session, email: str):
-    return db.query(User).filter(User.email == email).first()
+    if not email:
+        return None
+    clean_email = email.strip().lower()
+    return db.query(User).filter(func.lower(User.email) == clean_email).first()
 
 def create_user(db: Session, user: UserCreate):
+    clean_email = user.email.strip().lower()
     hashed_password = get_password_hash(user.password)
     db_user = User(
-        email=user.email,
+        email=clean_email,
         hashed_password=hashed_password,
-        first_name=user.first_name,
-        last_name=user.last_name,
+        first_name=user.first_name.strip() if user.first_name else "",
+        last_name=user.last_name.strip() if user.last_name else "",
         role=user.role,
         is_active=user.is_active
     )

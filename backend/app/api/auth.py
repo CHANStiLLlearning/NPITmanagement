@@ -39,7 +39,8 @@ def login(
     db: Session = Depends(get_db), 
     remember_me: bool = Form(False)
 ):
-    user = get_user_by_email(db, email=form_data.username)
+    clean_username = form_data.username.strip().lower() if form_data.username else ""
+    user = get_user_by_email(db, email=clean_username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         if user:
             log_action(db, user_email=user.email, action="login_failed", module="Auth", details="Invalid password attempt", ip_address=request.client.host if (request and request.client) else "127.0.0.1")
@@ -47,6 +48,11 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account is inactive. Please contact administration."
         )
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -151,7 +157,8 @@ def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)
             status_code=400,
             detail="Admin accounts cannot self-register. Please contact school administration."
         )
-    existing = get_user_by_email(db, email=request_data.email)
+    clean_email = request_data.email.strip().lower()
+    existing = get_user_by_email(db, email=clean_email)
     if existing:
         raise HTTPException(
             status_code=400,
@@ -160,10 +167,10 @@ def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)
     from app.schemas.user import UserCreate
     from app.models.user import RoleEnum
     user_in = UserCreate(
-        email=request_data.email,
+        email=clean_email,
         password=request_data.password,
-        first_name=request_data.first_name,
-        last_name=request_data.last_name,
+        first_name=request_data.first_name.strip(),
+        last_name=request_data.last_name.strip(),
         role=RoleEnum(request_data.role),
         is_active=True,
     )

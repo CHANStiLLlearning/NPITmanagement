@@ -88,3 +88,30 @@ def test_reports_summary():
     data = response.json()
     assert "total_students" in data
     assert "attendance_rate" in data
+
+
+def test_public_register_and_login():
+    import uuid
+    unique_email = f"student_{uuid.uuid4().hex[:6]}@school.com"
+    # Register new user with mixed case and leading/trailing spaces
+    reg_response = client.post(
+        "/auth/register",
+        json={
+            "email": f"  {unique_email.upper()}  ",
+            "password": "studentpassword123",
+            "first_name": "New",
+            "last_name": "Student",
+            "role": "student"
+        }
+    )
+    assert reg_response.status_code == 201
+
+    # Login with new user using lowercase email
+    login_response = client.post(
+        "/auth/login",
+        data={"username": unique_email.lower(), "password": "studentpassword123"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    assert login_response.status_code == 200
+    assert "access_token" in login_response.json()
+
