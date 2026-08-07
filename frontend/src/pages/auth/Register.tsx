@@ -5,7 +5,7 @@ import { GraduationCap, Users, UserCheck, ShieldCheck, AlertCircle, CheckCircle2
 import { NPITLogo } from '@/components/common/NPITLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Role = 'student' | 'teacher' | 'admin' | 'parent';
+type Role = 'student' | 'teacher' | 'parent';
 
 function Particle({ x, y, size, delay, duration }: { x: number; y: number; size: number; delay: number; duration: number }) {
   return (
@@ -41,7 +41,6 @@ const itemVariants = {
 const TABS: { role: Role; label: string; labelKh: string; icon: React.ElementType; color: string; accent: string }[] = [
   { role: 'student', label: 'Student',  labelKh: 'សិស្ស',      icon: GraduationCap, color: 'text-[#2269ff]',  accent: 'bg-[#2269ff]' },
   { role: 'teacher', label: 'Teacher',  labelKh: 'គ្រូបង្រៀន',  icon: UserCheck,     color: 'text-amber-500',  accent: 'bg-amber-500' },
-  { role: 'admin',   label: 'Admin',    labelKh: 'អ្នកគ្រប់គ្រង', icon: ShieldCheck,   color: 'text-emerald-500',accent: 'bg-emerald-500' },
   { role: 'parent',  label: 'Parent',   labelKh: 'មាតាបិតា',   icon: Users,         color: 'text-[#ec171c]',  accent: 'bg-[#ec171c]' },
 ];
 
@@ -110,7 +109,7 @@ export default function Register() {
         initial={{ opacity: 0, y: 40, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-[520px]"
+        className="relative z-10 w-full max-w-[800px]"
       >
         <div className="rounded-3xl bg-white p-6 sm:p-8 shadow-2xl border border-blue-100/80">
           <motion.div variants={containerVariants} initial="hidden" animate="visible">

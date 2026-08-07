@@ -144,11 +144,11 @@ def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)
     """
     Public self-registration for students and parents only.
     """
-    allowed_roles = {"student", "parent", "teacher", "admin"}
+    allowed_roles = {"student", "parent", "teacher"}
     if request_data.role not in allowed_roles:
         raise HTTPException(
             status_code=400,
-            detail="Registration allowed for student, teacher, admin, or parent."
+            detail="Admin accounts cannot self-register. Please contact school administration."
         )
     existing = get_user_by_email(db, email=request_data.email)
     if existing:
