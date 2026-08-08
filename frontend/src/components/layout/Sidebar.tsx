@@ -45,7 +45,12 @@ const navigation = [
   { name: 'System Logs', khmer: 'កំណត់ហេតុប្រព័ន្ធ', href: '/system-logs', icon: Activity, allowedRoles: ['super_admin'] },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onItemClick?: () => void;
+  className?: string;
+}
+
+export function Sidebar({ onItemClick, className }: SidebarProps) {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const role = user?.role || 'student';
@@ -53,7 +58,7 @@ export function Sidebar() {
   const filteredNavigation = navigation.filter(item => item.allowedRoles.includes(role));
 
   return (
-    <div className="flex h-full w-72 flex-col bg-white border-r border-blue-100 shadow-sm">
+    <div className={cn("flex h-full w-72 flex-col bg-white border-r border-blue-100 shadow-sm shrink-0", className)}>
       {/* Brand Header */}
       <div className="flex h-20 items-center gap-3.5 px-5 py-4 border-b border-blue-100 border-t-4 border-t-[#ec171c] bg-white">
         <NPITLogo size={44} />
@@ -70,6 +75,7 @@ export function Sidebar() {
             <NavLink
               key={item.name}
               to={item.href}
+              onClick={onItemClick}
               className={({ isActive }) =>
                 cn(
                   isActive
@@ -95,7 +101,7 @@ export function Sidebar() {
       {/* User Footer */}
       <div className="border-t border-blue-100 p-4 bg-white">
         <button
-          onClick={() => navigate('/profile')}
+          onClick={() => { navigate('/profile'); onItemClick?.(); }}
           className="flex items-center gap-3 w-full rounded-xl p-2 hover:bg-blue-50 transition-colors group mb-2"
         >
           {user?.photo_url ? (
@@ -123,7 +129,7 @@ export function Sidebar() {
           variant="outline"
           size="sm"
           className="w-full justify-start text-sm font-semibold text-[#ec171c] border-red-200 hover:text-red-700 hover:bg-red-50 py-2"
-          onClick={logout}
+          onClick={() => { logout(); onItemClick?.(); }}
         >
           <LogOut className="mr-2 h-4 w-4" />
           ចាកចេញ (Sign out)
