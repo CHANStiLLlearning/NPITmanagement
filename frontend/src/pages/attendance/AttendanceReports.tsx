@@ -135,14 +135,11 @@ export default function AttendanceReports() {
   }, [weekRefDate]);
 
   // Read local submitted records from Students page for 100% instant sync
-  const localSubmissions = useMemo(() => {
+  const localSubmissions = useMemo<any[]>(() => {
     try {
-      const list = JSON.parse(localStorage.getItem('npit_attendance_records') || '[]');
-      const todayStr = new Date().toISOString().split('T')[0];
-      return list.filter((r: any) => r.date && r.date <= todayStr);
-    } catch {
-      return [];
-    }
+      localStorage.removeItem('npit_attendance_records');
+    } catch {}
+    return [];
   }, [viewTab, fromDate, toDate, classFilter]);
 
   // Queries

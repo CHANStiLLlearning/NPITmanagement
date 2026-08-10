@@ -200,13 +200,7 @@ export default function Students() {
       };
     });
 
-    try {
-      const existing = JSON.parse(localStorage.getItem('npit_attendance_records') || '[]');
-      const updated = [...newRecords, ...existing];
-      localStorage.setItem('npit_attendance_records', JSON.stringify(updated));
-    } catch {
-      // LocalStorage fallback
-    }
+
 
     try {
       await Promise.all(
