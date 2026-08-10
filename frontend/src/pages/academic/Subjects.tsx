@@ -71,11 +71,8 @@ export default function Subjects() {
     },
   });
 
-  // Combine server data, local created data, and filter out deleted items
   const displaySubjects = useMemo(() => {
-    const baseList = (serverSubjects && serverSubjects.length > 0)
-      ? [...serverSubjects, ...createdSubjects]
-      : [...INITIAL_MOCK_SUBJECTS, ...createdSubjects];
+    const baseList = [...(serverSubjects || []), ...createdSubjects];
     
     // Deduplicate by ID and exclude deletedIds
     const map = new Map<number, Subject>();

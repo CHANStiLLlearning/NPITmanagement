@@ -249,7 +249,7 @@ export default function Dashboard() {
           tagColor,
         };
       })
-    : recentActivities;
+    : [];
 
   // ── DEDICATED STUDENT DASHBOARD ──
   if (user?.role === 'student') {
