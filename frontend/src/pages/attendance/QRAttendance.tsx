@@ -579,18 +579,18 @@ export default function QRAttendance() {
                 </div>
 
                 {/* Camera Scanner Viewport */}
-                <div className="relative overflow-hidden rounded-2xl bg-[#0a1f44] min-h-[340px] flex items-center justify-center border-4 border-slate-900 shadow-inner">
+                <div className="relative overflow-hidden rounded-2xl bg-white min-h-[340px] flex items-center justify-center border-2 border-blue-100 shadow-sm">
                   {!scanning ? (
                     <div className="flex flex-col items-center justify-center text-center p-8">
-                      <div className="h-20 w-20 rounded-full bg-blue-900/50 flex items-center justify-center border border-blue-500/30 mb-3">
-                        <Scan className="h-10 w-10 text-blue-400 animate-pulse" />
+                      <div className="h-20 w-20 rounded-full bg-blue-50 flex items-center justify-center border border-blue-200 mb-3 shadow-2xs">
+                        <Scan className="h-10 w-10 text-[#2269ff] animate-pulse" />
                       </div>
-                      <h3 className="text-lg font-bold text-white mb-1">Turnstile Gate Ready</h3>
-                      <p className="text-xs text-blue-200/80 max-w-xs mb-4">
+                      <h3 className="text-lg font-black text-[#0a1f44] mb-1">Turnstile Gate Ready</h3>
+                      <p className="text-xs text-slate-500 font-medium max-w-xs mb-4">
                         Mount tablet/webcam at school gate to auto-scan student QR ID cards
                       </p>
-                      <Button onClick={startScanner} className="bg-[#ec171c] hover:bg-red-700 text-white font-bold px-6">
-                        Activate Turnstile Camera
+                      <Button onClick={startScanner} className="bg-[#2269ff] hover:bg-blue-700 text-white font-bold px-6 shadow-md">
+                        <Camera className="mr-1.5 h-4 w-4" /> Activate Turnstile Camera
                       </Button>
                     </div>
                   ) : (
@@ -604,7 +604,7 @@ export default function QRAttendance() {
                         <span className="h-2.5 w-2.5 rounded-full bg-white animate-ping" />
                         <span className="text-xs font-black text-white uppercase tracking-wider">GATE SCANNER ACTIVE</span>
                       </div>
-                      <span className="rounded-lg bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-mono font-bold text-blue-300 border border-white/10">
+                      <span className="rounded-lg bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-mono font-bold text-white border border-white/20">
                         {currentTime.toLocaleTimeString()}
                       </span>
                     </div>

@@ -108,3 +108,73 @@ b, strong,
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Custom CSS for Html5QrcodeScanner white background container styling */
+#html5qr-code-full-region {
+  border: none !important;
+  color: #0a1f44 !important;
+  background-color: #ffffff !important;
+}
+
+#html5qr-code-full-region * {
+  color: #0a1f44 !important;
+}
+
+#html5qr-code-full-region img,
+#html5qr-code-full-region svg {
+  filter: none !important;
+}
+
+#html5qr-code-full-region a {
+  color: #2269ff !important;
+  text-decoration: underline !important;
+  font-weight: 600 !important;
+}
+
+#html5qr-code-full-region button {
+  background-color: #2269ff !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(34, 105, 255, 0.3) !important;
+  border-radius: 0.75rem !important;
+  padding: 0.5rem 1.25rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 12px rgba(34, 105, 255, 0.2) !important;
+}
+
+#html5qr-code-full-region button * {
+  color: #ffffff !important;
+}
+
+#html5qr-code-full-region button:hover {
+  background-color: #1d4ed8 !important;
+}
+
+#html5qr-code-full-region select {
+  background-color: #f8fafc !important;
+  color: #0a1f44 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.4rem 0.8rem !important;
+  font-weight: 600 !important;
+}
+
+#html5qr-code-full-region select option {
+  background-color: #ffffff !important;
+  color: #0a1f44 !important;
+}
+
+#html5qr-code-full-region__header_message,
+#html5qr-code-full-region__status_span {
+  color: #0a1f44 !important;
+  background: #f1f5f9 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.35rem 0.75rem !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+#qr-shaded-region {
+  border-color: rgba(34, 105, 255, 0.6) !important;
+}
+
