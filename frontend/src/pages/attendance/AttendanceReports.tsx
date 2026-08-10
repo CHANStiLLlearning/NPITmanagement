@@ -158,6 +158,7 @@ export default function AttendanceReports() {
       const { data } = await axios.get('/attendance/reports/summary', { params: p });
       return data;
     },
+    refetchInterval: 3000,
   });
 
   const byDailyQ = useQuery<DailyRow[]>({
@@ -168,6 +169,7 @@ export default function AttendanceReports() {
       const { data } = await axios.get('/attendance/reports/daily', { params: p });
       return data;
     },
+    refetchInterval: 3000,
   });
 
   const byWeeklyQ = useQuery<WeeklyRow[]>({
@@ -178,6 +180,7 @@ export default function AttendanceReports() {
       const { data } = await axios.get('/attendance/reports/weekly', { params: p });
       return data;
     },
+    refetchInterval: 3000,
   });
 
   const byMonthlyQ = useQuery<MonthlyRow[]>({
@@ -188,6 +191,7 @@ export default function AttendanceReports() {
       const { data } = await axios.get('/attendance/reports/monthly', { params: p });
       return data;
     },
+    refetchInterval: 3000,
   });
 
   const byStudentQ = useQuery<StudentRow[]>({
@@ -198,6 +202,20 @@ export default function AttendanceReports() {
       const { data } = await axios.get('/attendance/reports/by-student', { params: p });
       return data;
     },
+    refetchInterval: 3000,
+  });
+
+  const dailyDetailQ = useQuery<any[]>({
+    queryKey: ['att-detail-date', selectedDailyDate, classFilter],
+    queryFn: async () => {
+      if (!selectedDailyDate) return [];
+      const p: Record<string, string> = { date: selectedDailyDate };
+      if (classFilter) p.class_name = classFilter;
+      const { data } = await axios.get('/attendance/', { params: p });
+      return data;
+    },
+    enabled: !!selectedDailyDate,
+    refetchInterval: 3000,
   });
 
   // Calculate dynamic summary incorporating local submissions
@@ -239,7 +257,7 @@ export default function AttendanceReports() {
       else if (rec.status === 'excused') existing.excused += 1;
 
       existing.total += 1;
-      existing.rate = Math.round(((existing.present + existing.late) / (existing.total || 1)) * 100);
+      existing.rate = Math.round((existing.present / (existing.total || 1)) * 100);
       map.set(recDate, existing);
     });
 
@@ -248,11 +266,16 @@ export default function AttendanceReports() {
     return result;
   }, [byDailyQ.data, localSubmissions]);
 
-  // Active records for selected date in Daily Tab
+  // Active records for selected date in Daily Tab (combining real-time API and local submissions)
   const activeDailyRecords = useMemo(() => {
     if (!selectedDailyDate) return [];
-    return localSubmissions.filter((r: any) => r.date === selectedDailyDate);
-  }, [selectedDailyDate, localSubmissions]);
+    const remote = dailyDetailQ.data || [];
+    const locals = localSubmissions.filter((r: any) => r.date === selectedDailyDate);
+    const map = new Map();
+    remote.forEach((r: any) => map.set(r.student_sid || r.id, r));
+    locals.forEach((r: any) => map.set(r.student_sid || r.id, r));
+    return Array.from(map.values());
+  }, [selectedDailyDate, dailyDetailQ.data, localSubmissions]);
 
   // Filter students based on search term & incorporate submitted attendance
   const filteredStudents = useMemo(() => {
@@ -330,7 +353,7 @@ export default function AttendanceReports() {
     const isWeekly = studentTimeframe === 'weekly';
     const rows = (isWeekly ? studentBreakdown.weekly : studentBreakdown.monthly).map(r => {
       const rateClass = r.rate >= 85 ? 'rate-good' : r.rate >= 60 ? 'rate-mid' : 'rate-bad';
-      return `<tr><td>${r.period}</td><td>${r.present}</td><td>${r.late}</td><td>${r.absent}</td><td>${r.excused}</td><td>${r.total}</td><td class="${rateClass}">${r.rate}%</td></tr>`;
+      return `<tr><td>${r.period}</td><td>${r.present}</td><td>${r.absent}</td><td>${r.excused}</td><td>${r.total}</td><td class="${rateClass}">${r.rate}%</td></tr>`;
     }).join('');
 
     printReport(`Individual Attendance Report - ${selectedStudent.student_name}`, `
@@ -346,7 +369,7 @@ export default function AttendanceReports() {
       <h2>របាយការណ៍វត្តមាន ${isWeekly ? 'ប្រចាំសប្តាហ៍ (Weekly)' : 'ប្រចាំខែ (Monthly)'}</h2>
       <table>
         <thead>
-          <tr><th>កាលបរិច្ឆេទ/កំឡុងពេល</th><th>វត្តមាន</th><th>មកយឺត</th><th>អវត្តមាន</th><th>ច្បាប់</th><th>សរុប</th><th>អត្រាវត្តមាន</th></tr>
+          <tr><th>កាលបរិច្ឆេទ/កំឡុងពេល</th><th>វត្តមាន</th><th>អវត្តមាន</th><th>ច្បាប់</th><th>សរុប</th><th>អត្រាវត្តមាន</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
@@ -500,7 +523,7 @@ export default function AttendanceReports() {
         </div>
 
         {/* Top KPI Metrics Cards */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-2xs">
             <span className="text-xs font-bold text-slate-400">អត្រាវត្តមានសរុប</span>
             <div className="mt-2 flex items-baseline justify-between">
@@ -513,14 +536,6 @@ export default function AttendanceReports() {
             <span className="text-xs font-bold text-slate-400">វត្តមាន (Present)</span>
             <div className="mt-2 flex items-baseline justify-between">
               <span className="text-2xl font-extrabold text-emerald-600">{summary?.present ?? 0}</span>
-              <span className="text-xs font-medium text-slate-400">ដង</span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-2xs">
-            <span className="text-xs font-bold text-slate-400">មកយឺត (Late)</span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-2xl font-extrabold text-amber-600">{summary?.late ?? 0}</span>
               <span className="text-xs font-medium text-slate-400">ដង</span>
             </div>
           </div>
@@ -597,12 +612,21 @@ export default function AttendanceReports() {
             {/* Daily Attendance Summary Table */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-[#0a1f44] flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-[#2269ff]" />
-                  <span>
-                    {user?.role === 'student' ? 'វត្តមានរបស់ខ្ញុំប្រចាំថ្ងៃ (My Daily Attendance)' : 'របាយការណ៍វត្តមានប្រចាំថ្ងៃ (Daily Log Summary)'}
-                  </span>
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <h3 className="text-base font-bold text-[#0a1f44] flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-[#2269ff]" />
+                    <span>
+                      {user?.role === 'student' ? 'វត្តមានរបស់ខ្ញុំប្រចាំថ្ងៃ (My Daily Attendance)' : 'របាយការណ៍វត្តមានប្រចាំថ្ងៃ (Daily Log Summary)'}
+                    </span>
+                  </h3>
+                  <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700 w-fit">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>Real-Time Sync (៣ វិនាទី)</span>
+                  </div>
+                </div>
                 <span className="text-xs text-slate-500 font-medium">
                   {user?.role === 'student' ? 'ចុចលើថ្ងៃនីមួយៗដើម្បីមើលវត្តមានលម្អិត' : 'ចុចលើថ្ងៃនីមួយៗដើម្បីមើលវត្តមានសិស្សលម្អិត'}
                 </span>
@@ -616,7 +640,6 @@ export default function AttendanceReports() {
                         <th className="px-6 py-4">#</th>
                         <th className="px-6 py-4">កាលបរិច្ឆេទ (Date)</th>
                         <th className="px-6 py-4">វត្តមាន (Present)</th>
-                        <th className="px-6 py-4">មកយឺត (Late)</th>
                         <th className="px-6 py-4">អវត្តមាន (Absent)</th>
                         <th className="px-6 py-4">ច្បាប់ (Excused)</th>
                         <th className="px-6 py-4">ចំនួនសរុប</th>
@@ -627,7 +650,7 @@ export default function AttendanceReports() {
                     <tbody className="divide-y divide-slate-100 text-sm">
                       {dailyRows.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
+                          <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                             ពុំមានទិន្នន័យវត្តមានប្រចាំថ្ងៃឡើយ។
                           </td>
                         </tr>
@@ -649,7 +672,6 @@ export default function AttendanceReports() {
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-emerald-600 font-semibold">{row.present} នាក់</td>
-                              <td className="px-6 py-4 text-amber-600 font-semibold">{row.late} នាក់</td>
                               <td className="px-6 py-4 text-red-600 font-semibold">{row.absent} នាក់</td>
                               <td className="px-6 py-4 text-blue-600 font-semibold">{row.excused} នាក់</td>
                               <td className="px-6 py-4 font-bold text-slate-700">{row.total} នាក់</td>
@@ -752,7 +774,6 @@ export default function AttendanceReports() {
                     <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500">
                       <th className="px-6 py-4">សប្តាហ៍ (Week)</th>
                       <th className="px-6 py-4">វត្តមាន (Present)</th>
-                      <th className="px-6 py-4">មកយឺត (Late)</th>
                       <th className="px-6 py-4">អវត្តមាន (Absent)</th>
                       <th className="px-6 py-4">ច្បាប់ (Excused)</th>
                       <th className="px-6 py-4">ចំនួនសរុប</th>
@@ -762,14 +783,13 @@ export default function AttendanceReports() {
                   <tbody className="divide-y divide-slate-100 text-sm">
                     {(byWeeklyQ.data ?? []).length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-8 text-center text-slate-400">ពុំមានទិន្នន័យប្រចាំសប្តាហ៍ឡើយ។</td>
+                        <td colSpan={6} className="px-6 py-8 text-center text-slate-400">ពុំមានទិន្នន័យប្រចាំសប្តាហ៍ឡើយ។</td>
                       </tr>
                     ) : (
                       (byWeeklyQ.data ?? []).map((row, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30">
                           <td className="px-6 py-4 font-bold text-[#0a1f44]">{row.week}</td>
                           <td className="px-6 py-4 text-emerald-600 font-semibold">{row.present}</td>
-                          <td className="px-6 py-4 text-amber-600 font-semibold">{row.late}</td>
                           <td className="px-6 py-4 text-red-600 font-semibold">{row.absent}</td>
                           <td className="px-6 py-4 text-blue-600 font-semibold">{row.excused}</td>
                           <td className="px-6 py-4 font-bold">{row.total}</td>
@@ -798,7 +818,6 @@ export default function AttendanceReports() {
                     <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500">
                       <th className="px-6 py-4">ខែ (Month)</th>
                       <th className="px-6 py-4">វត្តមាន (Present)</th>
-                      <th className="px-6 py-4">មកយឺត (Late)</th>
                       <th className="px-6 py-4">អវត្តមាន (Absent)</th>
                       <th className="px-6 py-4">ច្បាប់ (Excused)</th>
                       <th className="px-6 py-4">ចំនួនសរុប</th>
@@ -808,14 +827,13 @@ export default function AttendanceReports() {
                   <tbody className="divide-y divide-slate-100 text-sm">
                     {(byMonthlyQ.data ?? []).length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-8 text-center text-slate-400">ពុំមានទិន្នន័យប្រចាំខែឡើយ។</td>
+                        <td colSpan={6} className="px-6 py-8 text-center text-slate-400">ពុំមានទិន្នន័យប្រចាំខែឡើយ។</td>
                       </tr>
                     ) : (
                       (byMonthlyQ.data ?? []).map((row, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30">
                           <td className="px-6 py-4 font-bold text-[#0a1f44]">{row.month}</td>
                           <td className="px-6 py-4 text-emerald-600 font-semibold">{row.present}</td>
-                          <td className="px-6 py-4 text-amber-600 font-semibold">{row.late}</td>
                           <td className="px-6 py-4 text-red-600 font-semibold">{row.absent}</td>
                           <td className="px-6 py-4 text-blue-600 font-semibold">{row.excused}</td>
                           <td className="px-6 py-4 font-bold">{row.total}</td>
@@ -965,7 +983,6 @@ export default function AttendanceReports() {
                                 <span>{row.period}</span>
                               </td>
                               <td className="px-6 py-4 font-semibold text-emerald-600">{row.present} ថ្ងៃ</td>
-                              <td className="px-6 py-4 font-semibold text-amber-600">{row.late} ថ្ងៃ</td>
                               <td className="px-6 py-4 font-semibold text-red-600">{row.absent} ថ្ងៃ</td>
                               <td className="px-6 py-4 font-semibold text-blue-600">{row.excused} ថ្ងៃ</td>
                               <td className="px-6 py-4 font-bold text-slate-700">{row.total} ថ្ងៃ</td>
@@ -1001,7 +1018,6 @@ export default function AttendanceReports() {
                         <th className="px-6 py-4">អត្តលេខ (ID)</th>
                         <th className="px-6 py-4">មុខវិជ្ជា</th>
                         <th className="px-6 py-4">វត្តមាន</th>
-                        <th className="px-6 py-4">មកយឺត</th>
                         <th className="px-6 py-4">អវត្តមាន</th>
                         <th className="px-6 py-4">អត្រាវត្តមាន</th>
                         <th className="px-6 py-4 text-right">សកម្មភាព</th>
@@ -1027,7 +1043,6 @@ export default function AttendanceReports() {
                           <td className="px-6 py-4 font-mono text-xs font-bold text-[#2269ff]">{st.student_sid}</td>
                           <td className="px-6 py-4 text-xs font-semibold text-slate-600">{st.class_name}</td>
                           <td className="px-6 py-4 text-emerald-600 font-semibold">{st.present}</td>
-                          <td className="px-6 py-4 text-amber-600 font-semibold">{st.late}</td>
                           <td className="px-6 py-4 text-red-600 font-semibold">{st.absent}</td>
                           <td className="px-6 py-4 font-bold">{rateCell(st.rate)}</td>
                           <td className="px-6 py-4 text-right">

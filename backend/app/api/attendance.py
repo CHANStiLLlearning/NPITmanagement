@@ -134,7 +134,7 @@ def report_summary(
     late    = q.filter(AttendanceRecord.status == "late").count()
     absent  = q.filter(AttendanceRecord.status == "absent").count()
     excused = q.filter(AttendanceRecord.status == "excused").count()
-    rate    = round((present + late) / total * 100, 1) if total else 0.0
+    rate    = round(present / total * 100, 1) if total else 0.0
     unique_students = 1 if get_role_str(current_user) == "student" else db.query(AttendanceRecord.student_sid).distinct().count()
     if get_role_str(current_user) == "student":
         sid = get_current_student_sid(db, current_user)
@@ -179,7 +179,7 @@ def report_daily(
     for d in data:
         total = sum([d["present"], d["late"], d["absent"], d["excused"]])
         d["total"] = total
-        d["rate"]  = round((d["present"] + d["late"]) / total * 100, 1) if total else 0.0
+        d["rate"]  = round(d["present"] / total * 100, 1) if total else 0.0
     return data
 
 
@@ -215,7 +215,7 @@ def report_weekly(
     for d in data:
         total = sum([d["present"], d["late"], d["absent"], d["excused"]])
         d["total"] = total
-        d["rate"] = round((d["present"] + d["late"]) / total * 100, 1) if total else 0.0
+        d["rate"] = round(d["present"] / total * 100, 1) if total else 0.0
     return data
 
 
@@ -250,7 +250,7 @@ def report_monthly(
     for d in data:
         total = sum([d["present"], d["late"], d["absent"], d["excused"]])
         d["total"] = total
-        d["rate"] = round((d["present"] + d["late"]) / total * 100, 1) if total else 0.0
+        d["rate"] = round(d["present"] / total * 100, 1) if total else 0.0
     return data
 
 
@@ -282,7 +282,7 @@ def report_by_class(
     for d in data:
         total = sum([d["present"], d["late"], d["absent"], d["excused"]])
         d["total"] = total
-        d["rate"] = round((d["present"] + d["late"]) / total * 100, 1) if total else 0.0
+        d["rate"] = round(d["present"] / total * 100, 1) if total else 0.0
     return sorted(data, key=lambda x: x.get("class_name", ""))
 
 
@@ -350,7 +350,7 @@ def report_by_student(
     for d in data:
         total = sum([d["present"], d["late"], d["absent"], d["excused"]])
         d["total"] = total
-        d["rate"] = round((d["present"] + d["late"]) / total * 100, 1) if total else 0.0
+        d["rate"] = round(d["present"] / total * 100, 1) if total else 0.0
     return sorted(data, key=lambda x: x["student_name"])[:limit]
 
 

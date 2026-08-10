@@ -45,7 +45,7 @@ def get_school_summary(
         att_q = att_q.filter(AttendanceRecord.student_sid == student_sid)
 
     total_att   = att_q.count()
-    present_att = att_q.filter(AttendanceRecord.status.in_(["present", "late"])).count()
+    present_att = att_q.filter(AttendanceRecord.status == "present").count()
     att_rate    = round((present_att / total_att * 100), 1) if total_att > 0 else 0.0
 
     total_reports  = db.query(TeachingReport).count()
@@ -75,7 +75,7 @@ def get_school_summary(
         dq = db.query(AttendanceRecord).filter(AttendanceRecord.date == d)
         if student_sid:
             dq = dq.filter(AttendanceRecord.student_sid == student_sid)
-        p = dq.filter(AttendanceRecord.status.in_(["present", "late"])).count()
+        p = dq.filter(AttendanceRecord.status == "present").count()
         a = dq.filter(AttendanceRecord.status == "absent").count()
         weekly_attendance.append({
             "day": f"{kh_name} ({d.strftime('%d/%m')})",
