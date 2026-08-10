@@ -217,6 +217,17 @@ export default function AttendanceReports() {
     refetchInterval: 3000,
   });
 
+  const rawAttendanceRecordsQ = useQuery<any[]>({
+    queryKey: ['att-raw-records', weekRefDate, fromDate, toDate, classFilter],
+    queryFn: async () => {
+      const p: Record<string, string> = {};
+      if (classFilter) p.class_name = classFilter;
+      const { data } = await axios.get('/attendance/', { params: p });
+      return Array.isArray(data) ? data : [];
+    },
+    refetchInterval: 3000,
+  });
+
   // Calculate dynamic summary incorporating local submissions
   const summary = useMemo(() => {
     const base = summaryQ.data || { total: 0, present: 0, late: 0, absent: 0, excused: 0, rate: 0, unique_students: 0, unique_days: 0 };
@@ -310,10 +321,15 @@ export default function AttendanceReports() {
     const local = localSubmissions.find((r: any) => r.student_sid === studentSid && r.date === dateIso);
     if (local) return local.status;
 
+    const dbRecord = (rawAttendanceRecordsQ.data || []).find(
+      (r: any) => (r.student_sid === studentSid || r.student_id === studentSid) && r.date === dateIso
+    );
+    if (dbRecord) return dbRecord.status;
+
     const todayStr = new Date().toISOString().split('T')[0];
     if (dateIso > todayStr) return 'upcoming';
 
-    return 'present';
+    return 'absent';
   };
 
   // Generate Weekly & Monthly data breakdown for a selected student dynamically from real student record
@@ -504,9 +520,18 @@ export default function AttendanceReports() {
                 <BarChart2 className="h-6 w-6" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-[#0a1f44]">
-                  {user?.role === 'student' ? 'វត្តមានរបស់ខ្ញុំ (My Attendance Reports)' : 'របាយការណ៍វត្តមាន (Attendance Reports & Analytics)'}
-                </h1>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#0a1f44]">
+                    {user?.role === 'student' ? 'វត្តមានរបស់ខ្ញុំ (My Attendance Reports)' : 'របាយការណ៍វត្តមាន (Attendance Reports & Analytics)'}
+                  </h1>
+                  <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-bold text-emerald-700 w-fit">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span>Real-Time Live</span>
+                  </div>
+                </div>
                 <p className="text-xs sm:text-sm text-slate-500 font-medium">
                   {user?.role === 'student' ? 'មើលរបាយការណ៍វត្តមានប្រចាំថ្ងៃ និងសប្តាហ៍ផ្ទាល់ខ្លួនរបស់ខ្ញុំ' : 'មើលរបាយការណ៍វត្តមានប្រចាំថ្ងៃ សប្តាហ៍ ខែ និងរបាយការណ៍វត្តមានសិស្សម្នាក់ៗ'}
                 </p>
