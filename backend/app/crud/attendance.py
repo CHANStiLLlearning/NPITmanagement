@@ -19,7 +19,12 @@ def auto_mark_absents(db: Session, target_date: date) -> int:
     """
     Auto-mark active students absent if they haven't scanned on a school day.
     Friday (weekday 4) and Sunday (weekday 6) are EXEMPT (off days / weekends).
+    Future dates are NEVER marked absent.
     """
+    today_local = datetime.now().date()
+    if target_date > today_local:
+        return 0
+
     # 4 = Friday, 6 = Sunday
     if target_date.weekday() in (4, 6):
         return 0

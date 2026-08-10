@@ -137,7 +137,9 @@ export default function AttendanceReports() {
   // Read local submitted records from Students page for 100% instant sync
   const localSubmissions = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem('npit_attendance_records') || '[]');
+      const list = JSON.parse(localStorage.getItem('npit_attendance_records') || '[]');
+      const todayStr = new Date().toISOString().split('T')[0];
+      return list.filter((r: any) => r.date && r.date <= todayStr);
     } catch {
       return [];
     }
