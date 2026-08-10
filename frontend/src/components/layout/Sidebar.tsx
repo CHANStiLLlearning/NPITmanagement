@@ -221,7 +221,9 @@ export function Sidebar({ onItemClick, className }: SidebarProps) {
                     className="mr-3 h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 text-[#2269ff]"
                     aria-hidden="true"
                   />
-                  <span className="text-sm font-semibold whitespace-nowrap">{item.khmer}</span>
+                  <span className="text-sm font-semibold whitespace-nowrap">
+                    {role === 'student' && item.href === '/attendance' ? 'វត្តមានរបស់ខ្ញុំ' : item.khmer}
+                  </span>
                 </NavLink>
               </div>
             );

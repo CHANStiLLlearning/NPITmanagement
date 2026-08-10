@@ -89,10 +89,30 @@ def count_teachers(
 
 
 def create_teacher(db: Session, teacher: TeacherCreate) -> Teacher:
+    from app.models.user import User, RoleEnum
+    from app.core.security import get_password_hash
+    from sqlalchemy import func
+
     teacher_id = generate_teacher_id(db)
     qr = generate_qr_code(teacher_id)
     db_teacher = Teacher(**teacher.model_dump(), teacher_id=teacher_id, qr_code=qr)
     db.add(db_teacher)
+
+    # Auto-create User login account if email provided and doesn't exist
+    if teacher.email:
+        clean_email = teacher.email.strip().lower()
+        existing_user = db.query(User).filter(func.lower(User.email) == clean_email).first()
+        if not existing_user:
+            user = User(
+                email=clean_email,
+                hashed_password=get_password_hash("Teacher@123"),
+                first_name=teacher.first_name,
+                last_name=teacher.last_name,
+                role=RoleEnum.teacher,
+                is_active=True,
+            )
+            db.add(user)
+
     db.commit()
     db.refresh(db_teacher)
     return db_teacher

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
+import { useAuth } from '@/contexts/AuthContext';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -64,6 +65,7 @@ function printReport(title: string, html: string) {
 }
 
 export default function AttendanceReports() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
 
@@ -481,10 +483,10 @@ export default function AttendanceReports() {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-[#0a1f44]">
-                  របាយការណ៍វត្តមាន (Attendance Reports & Analytics)
+                  {user?.role === 'student' ? 'វត្តមានរបស់ខ្ញុំ (My Attendance Reports)' : 'របាយការណ៍វត្តមាន (Attendance Reports & Analytics)'}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                  មើលរបាយការណ៍វត្តមានប្រចាំថ្ងៃ សប្តាហ៍ ខែ និងរបាយការណ៍វត្តមានសិស្សម្នាក់ៗ
+                  {user?.role === 'student' ? 'មើលរបាយការណ៍វត្តមានប្រចាំថ្ងៃ និងសប្តាហ៍ផ្ទាល់ខ្លួនរបស់ខ្ញុំ' : 'មើលរបាយការណ៍វត្តមានប្រចាំថ្ងៃ សប្តាហ៍ ខែ និងរបាយការណ៍វត្តមានសិស្សម្នាក់ៗ'}
                 </p>
               </div>
             </div>
@@ -597,9 +599,13 @@ export default function AttendanceReports() {
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-[#0a1f44] flex items-center gap-2">
                   <Clock className="h-5 w-5 text-[#2269ff]" />
-                  <span>របាយការណ៍វត្តមានប្រចាំថ្ងៃ (Daily Log Summary)</span>
+                  <span>
+                    {user?.role === 'student' ? 'វត្តមានរបស់ខ្ញុំប្រចាំថ្ងៃ (My Daily Attendance)' : 'របាយការណ៍វត្តមានប្រចាំថ្ងៃ (Daily Log Summary)'}
+                  </span>
                 </h3>
-                <span className="text-xs text-slate-500 font-medium">ចុចលើថ្ងៃនីមួយៗដើម្បីមើលវត្តមានសិស្សលម្អិត</span>
+                <span className="text-xs text-slate-500 font-medium">
+                  {user?.role === 'student' ? 'ចុចលើថ្ងៃនីមួយៗដើម្បីមើលវត្តមានលម្អិត' : 'ចុចលើថ្ងៃនីមួយៗដើម្បីមើលវត្តមានសិស្សលម្អិត'}
+                </span>
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xs">

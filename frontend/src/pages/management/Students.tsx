@@ -235,14 +235,24 @@ export default function Students() {
     }
   };
 
+  const [formError, setFormError] = useState<string | null>(null);
+
   // mutations
   const createMutation = useMutation({
     mutationFn: (data: Partial<Student>) => axios.post('/students/', data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['students'] }); closeForm(); },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'មិនអាចបង្កើតទិន្នន័យសិស្សបានទេ។ (Failed to create student)';
+      setFormError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    },
   });
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Student> }) => axios.put(`/students/${id}`, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['students'] }); closeForm(); },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || 'មិនអាចធ្វើបច្ចុប្បន្នភាពបានទេ។ (Failed to update student)';
+      setFormError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    },
   });
 
   const avatarMutation = useMutation({
@@ -292,13 +302,28 @@ export default function Students() {
   };
 
   // helpers
-  const openCreate = () => { setFormData(emptyForm); setEditTarget(null); setFormTab(0); setShowForm(true); };
-  const openEdit = (s: Student) => { setFormData({ ...s }); setEditTarget(s); setFormTab(0); setShowForm(true); };
-  const closeForm = () => { setShowForm(false); setEditTarget(null); };
-  const handleField = (k: string, v: string) => setFormData(p => ({ ...p, [k]: v }));
+  const openCreate = () => { setFormData(emptyForm); setEditTarget(null); setFormTab(0); setFormError(null); setShowForm(true); };
+  const openEdit = (s: Student) => { setFormData({ ...s }); setEditTarget(s); setFormTab(0); setFormError(null); setShowForm(true); };
+  const closeForm = () => { setShowForm(false); setEditTarget(null); setFormError(null); };
+  const handleField = (k: string, v: string) => {
+    setFormError(null);
+    setFormData(p => ({ ...p, [k]: v }));
+  };
   const handleSubmit = () => {
-    if (editTarget) updateMutation.mutate({ id: editTarget.id, data: formData });
-    else createMutation.mutate(formData);
+    if (!formData.first_name?.trim() || !formData.last_name?.trim()) {
+      setFormError("សូមបញ្ចូល នាមត្រកូល និង នាមខ្លួន (First Name and Last Name are required)");
+      return;
+    }
+    setFormError(null);
+    const cleanPayload: Record<string, any> = {};
+    Object.entries(formData).forEach(([k, v]) => {
+      if (v !== '' && v !== null && v !== undefined) {
+        cleanPayload[k] = v;
+      }
+    });
+
+    if (editTarget) updateMutation.mutate({ id: editTarget.id, data: cleanPayload });
+    else createMutation.mutate(cleanPayload);
   };
 
   const exportCSV = async () => {
@@ -717,6 +742,12 @@ export default function Students() {
           {showForm && (
             <Modal onClose={closeForm} title={editTarget ? 'Edit Student' : 'Add Student'} wide>
               <div className="space-y-6">
+                {formError && (
+                  <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-bold text-red-700">
+                    <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                )}
                 {/* Personal Information */}
                 <div>
                   <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">

@@ -65,7 +65,7 @@ export default function ParentsManager() {
         </div>
 
         {/* Parents Directory Table */}
-        <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xs">
+        <div className="overflow-x-auto rounded-2xl border border-blue-100 bg-white shadow-2xs">
           <table className="w-full text-left text-xs">
             <thead className="bg-blue-50/60 text-[#2269ff] uppercase font-black tracking-wider border-b border-blue-100">
               <tr>

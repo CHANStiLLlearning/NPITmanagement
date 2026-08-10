@@ -24,6 +24,24 @@ from app.models.student import Student
 router = APIRouter()
 
 
+def get_role_str(user: User) -> str:
+    r = getattr(user, 'role', '')
+    if hasattr(r, 'value'):
+        return str(r.value).lower()
+    return str(r).lower()
+
+
+def get_current_student_sid(db: Session, current_user: User) -> Optional[str]:
+    if get_role_str(current_user) != "student":
+        return None
+    st = db.query(Student).filter(Student.email == current_user.email).first()
+    if not st and current_user.first_name:
+        st = db.query(Student).filter(
+            Student.first_name.ilike(f"%{current_user.first_name}%")
+        ).first()
+    return st.student_id if st else "NO_MATCHING_STUDENT"
+
+
 @router.post("/scan", response_model=ScanResponse)
 def scan_attendance(
     request: ScanRequest,
@@ -45,6 +63,11 @@ def read_attendance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
+    role_s = get_role_str(current_user)
+    if role_s == "student":
+        student_sid = get_current_student_sid(db, current_user)
+    print(f"[DEBUG ATTENDANCE] user={current_user.email}, role_s='{role_s}', resolved_sid='{student_sid}'")
+
     return get_records(db, date_filter=date_filter, class_name=class_name,
                        status=status, student_sid=student_sid, skip=skip, limit=limit)
 
@@ -99,17 +122,25 @@ def report_summary(
     current_user: User = Depends(get_current_active_user),
 ):
     q = db.query(AttendanceRecord)
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        q = q.filter(AttendanceRecord.student_sid == sid)
+    elif class_name:
+        q = q.filter(AttendanceRecord.class_name == class_name)
     if from_date:   q = q.filter(AttendanceRecord.date >= from_date)
     if to_date:     q = q.filter(AttendanceRecord.date <= to_date)
-    if class_name:  q = q.filter(AttendanceRecord.class_name == class_name)
     total   = q.count()
     present = q.filter(AttendanceRecord.status == "present").count()
     late    = q.filter(AttendanceRecord.status == "late").count()
     absent  = q.filter(AttendanceRecord.status == "absent").count()
     excused = q.filter(AttendanceRecord.status == "excused").count()
     rate    = round((present + late) / total * 100, 1) if total else 0.0
-    unique_students = db.query(AttendanceRecord.student_sid).distinct().count()
-    unique_days     = db.query(AttendanceRecord.date).distinct().count()
+    unique_students = 1 if get_role_str(current_user) == "student" else db.query(AttendanceRecord.student_sid).distinct().count()
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        unique_days = db.query(AttendanceRecord.date).filter(AttendanceRecord.student_sid == sid).distinct().count()
+    else:
+        unique_days = db.query(AttendanceRecord.date).distinct().count()
     return {
         "total": total, "present": present, "late": late,
         "absent": absent, "excused": excused,
@@ -130,9 +161,13 @@ def report_daily(
         AttendanceRecord.status,
         func.count().label("count"),
     ).group_by(AttendanceRecord.date, AttendanceRecord.status)
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        q = q.filter(AttendanceRecord.student_sid == sid)
+    elif class_name:
+        q = q.filter(AttendanceRecord.class_name == class_name)
     if from_date:   q = q.filter(AttendanceRecord.date >= from_date)
     if to_date:     q = q.filter(AttendanceRecord.date <= to_date)
-    if class_name:  q = q.filter(AttendanceRecord.class_name == class_name)
     rows = q.order_by(AttendanceRecord.date).all()
     pivot: dict = {}
     for row in rows:
@@ -162,9 +197,13 @@ def report_weekly(
         AttendanceRecord.status,
         func.count().label("count"),
     ).group_by("year", "week", AttendanceRecord.status)
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        q = q.filter(AttendanceRecord.student_sid == sid)
+    elif class_name:
+        q = q.filter(AttendanceRecord.class_name == class_name)
     if from_date:   q = q.filter(AttendanceRecord.date >= from_date)
     if to_date:     q = q.filter(AttendanceRecord.date <= to_date)
-    if class_name:  q = q.filter(AttendanceRecord.class_name == class_name)
     rows = q.order_by("year", "week").all()
     pivot: dict = {}
     for row in rows:
@@ -193,8 +232,12 @@ def report_monthly(
         AttendanceRecord.status,
         func.count().label("count"),
     ).group_by("year", "month", AttendanceRecord.status)
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        q = q.filter(AttendanceRecord.student_sid == sid)
+    elif class_name:
+        q = q.filter(AttendanceRecord.class_name == class_name)
     if year:        q = q.filter(extract("year", AttendanceRecord.date) == year)
-    if class_name:  q = q.filter(AttendanceRecord.class_name == class_name)
     rows = q.order_by("year", "month").all()
     MONTHS = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
     pivot: dict = {}
@@ -223,6 +266,9 @@ def report_by_class(
         AttendanceRecord.status,
         func.count().label("count"),
     ).group_by(AttendanceRecord.class_name, AttendanceRecord.status)
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        q = q.filter(AttendanceRecord.student_sid == sid)
     if from_date: q = q.filter(AttendanceRecord.date >= from_date)
     if to_date:   q = q.filter(AttendanceRecord.date <= to_date)
     rows = q.all()
@@ -253,7 +299,10 @@ def report_by_student(
 
     # 1. Base map of all active students
     sq = db.query(Student).filter(Student.is_active == True)
-    if class_name:
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        sq = sq.filter(Student.student_id == sid)
+    elif class_name:
         sq = sq.filter(Student.class_name == class_name)
     all_students = sq.all()
 
@@ -278,9 +327,13 @@ def report_by_student(
         AttendanceRecord.student_sid, AttendanceRecord.student_name,
         AttendanceRecord.class_name, AttendanceRecord.status,
     )
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        q = q.filter(AttendanceRecord.student_sid == sid)
+    elif class_name:
+        q = q.filter(AttendanceRecord.class_name == class_name)
     if from_date:   q = q.filter(AttendanceRecord.date >= from_date)
     if to_date:     q = q.filter(AttendanceRecord.date <= to_date)
-    if class_name:  q = q.filter(AttendanceRecord.class_name == class_name)
     rows = q.all()
 
     for row in rows:
@@ -301,7 +354,6 @@ def report_by_student(
     return sorted(data, key=lambda x: x["student_name"])[:limit]
 
 
-
 @router.get("/reports/heatmap")
 def report_heatmap(
     year: Optional[int] = None,
@@ -314,8 +366,12 @@ def report_heatmap(
         AttendanceRecord.status,
         func.count().label("count"),
     ).group_by(AttendanceRecord.date, AttendanceRecord.status)
+    if get_role_str(current_user) == "student":
+        sid = get_current_student_sid(db, current_user)
+        q = q.filter(AttendanceRecord.student_sid == sid)
+    elif class_name:
+        q = q.filter(AttendanceRecord.class_name == class_name)
     if year:       q = q.filter(extract("year", AttendanceRecord.date) == year)
-    if class_name: q = q.filter(AttendanceRecord.class_name == class_name)
     rows = q.all()
     pivot: dict = {}
     for row in rows:
@@ -342,7 +398,10 @@ def export_attendance_csv(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
-    records = get_records(db, date_filter=date_filter, class_name=class_name, limit=10000)
+    student_sid = None
+    if get_role_str(current_user) == "student":
+        student_sid = get_current_student_sid(db, current_user)
+    records = get_records(db, date_filter=date_filter, class_name=class_name, student_sid=student_sid, limit=10000)
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Student ID","Student Name","Class","Section","Date","Time In","Status","Scan Method","Scanned By"])

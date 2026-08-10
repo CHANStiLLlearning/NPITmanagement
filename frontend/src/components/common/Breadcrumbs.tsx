@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ROUTE_NAMES: Record<string, string> = {
   'dashboard': 'Dashboard',
@@ -24,6 +25,7 @@ const ROUTE_NAMES: Record<string, string> = {
 };
 
 export function Breadcrumbs() {
+  const { user } = useAuth();
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter(x => x);
 
@@ -39,7 +41,10 @@ export function Breadcrumbs() {
       {pathnames.map((name, idx) => {
         const routeTo = `/${pathnames.slice(0, idx + 1).join('/')}`;
         const isLast = idx === pathnames.length - 1;
-        const displayName = ROUTE_NAMES[name] || name.replace('-', ' ');
+        let displayName = ROUTE_NAMES[name] || name.replace('-', ' ');
+        if (name === 'attendance' && user?.role === 'student') {
+          displayName = 'My Attendance';
+        }
 
         return (
           <React.Fragment key={routeTo}>

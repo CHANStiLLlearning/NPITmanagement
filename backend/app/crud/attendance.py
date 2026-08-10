@@ -170,6 +170,8 @@ def get_records(
     skip: int = 0,
     limit: int = 200,
 ) -> list[AttendanceRecord]:
+    if not isinstance(date_filter, (date, datetime)):
+        date_filter = None
     target_date = date_filter or datetime.utcnow().date()
     # Auto mark unscanned students as absent on school days
     auto_mark_absents(db, target_date)

@@ -173,7 +173,7 @@ export default function Dashboard() {
   const dynamicAttendanceData = {
     labels: summary?.weekly_attendance && summary.weekly_attendance.length > 0
       ? summary.weekly_attendance.map((w: any) => w.day)
-      : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      : ['ច័ន្ទ (Mon)', 'អង្គារ (Tue)', 'ពុធ (Wed)', 'ព្រហស្បតិ៍ (Thu)', 'សុក្រ (Fri)'],
     datasets: [
       {
         label: 'សិស្សវត្តមាន (Present)',
@@ -253,22 +253,20 @@ export default function Dashboard() {
 
   // ── DEDICATED STUDENT DASHBOARD ──
   if (user?.role === 'student') {
+    const attRate = summary?.attendance_rate ?? 100;
+    const totalScans = summary?.total_attendance_scans ?? 0;
+
     const studentStats = [
-      { label: 'អត្រាវត្តមានរបស់ខ្ញុំ', sublabel: 'My Attendance Rate', value: '96%', subtitle: 'វត្តមាន ៤៨ ថ្ងៃ នៃ ៥០ ថ្ងៃ', icon: UserCheck, badgeColor: 'bg-emerald-50 text-emerald-600 border-emerald-200', barColor: 'bg-emerald-500', percent: 96 },
-      { label: 'ថ្នាក់រៀនបច្ចុប្បន្ន', sublabel: 'Enrolled Class', value: '10A', subtitle: 'ដេប៉ាតឺម៉ង់ មេកានិច', icon: GraduationCap, badgeColor: 'bg-amber-50 text-amber-600 border-amber-200', barColor: 'bg-amber-500', percent: 100 },
-      { label: 'ម៉ោងរៀនថ្ងៃនេះ', sublabel: "Today's Schedule", value: '3 មុខ', subtitle: 'ម៉ោង 08:00 - 15:30', icon: Clock, badgeColor: 'bg-[#2269ff] text-[#2269ff] border-blue-200', barColor: 'bg-[#2269ff]', percent: 75 },
-    ];
-
-    const todaySchedule = [
-      { time: '08:00 - 09:30', subject: 'គណិតវិទ្យាបច្ចេកទេស', teacher: 'លោកគ្រូ សុខា', room: 'បន្ទប់ 302', status: 'កំពុងរៀន' },
-      { time: '09:45 - 11:15', subject: 'មេកានិចគ្រឹះ', teacher: 'បណ្ឌិត វង្ស ចន្ទ្រា', room: 'បន្ទប់ 105', status: 'បន្ទាប់' },
-      { time: '14:00 - 15:30', subject: 'ភាសាអង់គ្លេសបច្ចេកទេស', teacher: 'អ្នកគ្រូ លីដា', room: 'បន្ទប់ 201', status: 'បន្ទាប់' },
-    ];
-
-    const myScores = [
-      { subject: 'គណិតវិទ្យា (Math Midterm)', score: 88, maxScore: 100, grade: 'A', date: '២៥ កក្កដា ២០២៦' },
-      { subject: 'មេកានិច (Mechanics Quiz)', score: 95, maxScore: 100, grade: 'A+', date: '០១ សីហា ២០២៦' },
-      { subject: 'អគ្គិសនី (Electrical Basic)', score: 82, maxScore: 100, grade: 'B+', date: '០៣ សីហា ២០២៦' },
+      {
+        label: 'អត្រាវត្តមានរបស់ខ្ញុំ',
+        sublabel: 'My Attendance Rate',
+        value: `${attRate}%`,
+        subtitle: `សរុបស្កេន ${totalScans} លើកក្នុងប្រព័ន្ធ`,
+        icon: UserCheck,
+        badgeColor: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+        barColor: 'bg-emerald-500',
+        percent: attRate,
+      },
     ];
 
     return (
@@ -292,12 +290,10 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
-
-
           </div>
 
-          {/* Student Personal Metric Cards */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Student Personal Metric Card */}
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {studentStats.map((s, i) => (
               <div key={i} className="rounded-2xl border border-blue-100/90 bg-white p-6 shadow-2xs hover:border-blue-300 transition-all">
                 <div className="flex items-center justify-between">
@@ -318,64 +314,6 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Schedule & Scores Grid */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Today Schedule */}
-            <div className="rounded-2xl border border-blue-100 bg-white p-6 shadow-2xs">
-              <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[#2269ff]" />
-                  <h2 className="text-base sm:text-lg font-bold text-[#0a1f44] tracking-tight">កាលវិភាគរៀនថ្ងៃនេះ (My Today Schedule)</h2>
-                </div>
-                <span className="rounded-full bg-blue-50 text-[#2269ff] border border-blue-200 px-3 py-1 text-xs font-bold">
-                  ៣ មុខវិជ្ជា
-                </span>
-              </div>
-              <div className="space-y-3">
-                {todaySchedule.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-blue-50/40 transition-all">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-100 text-[#2269ff]">{item.time}</span>
-                        <h4 className="text-sm font-bold text-[#0a1f44]">{item.subject}</h4>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 font-medium">{item.teacher} • <span className="font-bold text-slate-700">{item.room}</span></p>
-                    </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${item.status === 'កំពុងរៀន' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
-                      {item.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* My Recent Scores */}
-            <div className="rounded-2xl border border-blue-100 bg-white p-6 shadow-2xs">
-              <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-[#ec171c]" />
-                  <h2 className="text-base sm:text-lg font-bold text-[#0a1f44] tracking-tight">ពិន្ទុទទួលបានថ្មីៗ (Recent Academic Scores)</h2>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {myScores.map((score, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-red-50/30 transition-all">
-                    <div>
-                      <h4 className="text-sm font-bold text-[#0a1f44]">{score.subject}</h4>
-                      <p className="text-xs text-slate-400 font-medium">{score.date}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-base font-extrabold text-[#2269ff]">{score.score}/{score.maxScore}</span>
-                      <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">
-                        {score.grade}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </Layout>

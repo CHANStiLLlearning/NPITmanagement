@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import date, datetime
 from decimal import Decimal
@@ -27,6 +27,20 @@ class TeacherBase(BaseModel):
     bank_name: Optional[str] = None
     performance_rating: Optional[Decimal] = None
     performance_notes: Optional[str] = None
+
+    @field_validator("date_of_birth", "join_date", mode="before")
+    @classmethod
+    def parse_empty_date(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
+    @field_validator("email", "phone", "address", "department", "qualification", "specialization", mode="before")
+    @classmethod
+    def parse_empty_string(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class TeacherCreate(TeacherBase):
@@ -57,6 +71,20 @@ class TeacherUpdate(BaseModel):
     performance_notes: Optional[str] = None
     photo_url: Optional[str] = None
     is_active: Optional[bool] = None
+
+    @field_validator("date_of_birth", "join_date", mode="before")
+    @classmethod
+    def parse_empty_date(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
+    @field_validator("email", "phone", "address", "department", "qualification", "specialization", mode="before")
+    @classmethod
+    def parse_empty_string(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class TeacherInDB(TeacherBase):

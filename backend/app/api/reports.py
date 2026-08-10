@@ -31,10 +31,22 @@ def get_school_summary(
     total_teachers = db.query(Teacher).filter(func.lower(Teacher.status) == "active").count()
     if total_teachers == 0:
         total_teachers = db.query(Teacher).count()
+
+    role_str = getattr(current_user.role, 'value', str(current_user.role)).lower()
+    student_sid = None
+    if role_str == "student":
+        st = db.query(Student).filter(Student.email == current_user.email).first()
+        if not st and current_user.first_name:
+            st = db.query(Student).filter(Student.first_name.ilike(f"%{current_user.first_name}%")).first()
+        student_sid = st.student_id if st else "NO_MATCHING_STUDENT"
         
-    total_att      = db.query(AttendanceRecord).count()
-    present_att    = db.query(AttendanceRecord).filter(AttendanceRecord.status.in_(["present", "late"])).count()
-    att_rate       = round((present_att / total_att * 100), 1) if total_att > 0 else 0.0
+    att_q = db.query(AttendanceRecord)
+    if student_sid:
+        att_q = att_q.filter(AttendanceRecord.student_sid == student_sid)
+
+    total_att   = att_q.count()
+    present_att = att_q.filter(AttendanceRecord.status.in_(["present", "late"])).count()
+    att_rate    = round((present_att / total_att * 100), 1) if total_att > 0 else 0.0
 
     total_reports  = db.query(TeachingReport).count()
     approved_reports = db.query(TeachingReport).filter(TeachingReport.status == "approved").count()
@@ -47,19 +59,29 @@ def get_school_summary(
     class_rows = db.query(Student.class_name, func.count(Student.id)).filter(Student.is_active == True).group_by(Student.class_name).all()
     class_distribution = {c[0] or "Unassigned": c[1] for c in class_rows}
 
-    # Weekly attendance trends (last 5 days)
+    # Weekly attendance trends (Monday to Friday of current week)
     today = date.today()
+    monday = today - timedelta(days=today.weekday())
+    day_labels = [
+        ("ច័ន្ទ (Mon)", "Mon"),
+        ("អង្គារ (Tue)", "Tue"),
+        ("ពុធ (Wed)", "Wed"),
+        ("ព្រហស្បតិ៍ (Thu)", "Thu"),
+        ("សុក្រ (Fri)", "Fri"),
+    ]
     weekly_attendance = []
-    days_map = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    for i in range(4, -1, -1):
-        d = today - timedelta(days=i)
-        p = db.query(AttendanceRecord).filter(AttendanceRecord.date == d, AttendanceRecord.status.in_(["present", "late"])).count()
-        a = db.query(AttendanceRecord).filter(AttendanceRecord.date == d, AttendanceRecord.status == "absent").count()
-        day_name = days_map[d.weekday()]
+    for idx, (kh_name, en_name) in enumerate(day_labels):
+        d = monday + timedelta(days=idx)
+        dq = db.query(AttendanceRecord).filter(AttendanceRecord.date == d)
+        if student_sid:
+            dq = dq.filter(AttendanceRecord.student_sid == student_sid)
+        p = dq.filter(AttendanceRecord.status.in_(["present", "late"])).count()
+        a = dq.filter(AttendanceRecord.status == "absent").count()
         weekly_attendance.append({
-            "day": f"{day_name} ({d.strftime('%d/%m')})",
+            "day": f"{kh_name} ({d.strftime('%d/%m')})",
+            "date": d.strftime("%Y-%m-%d"),
             "present": p,
-            "absent": a
+            "absent": a,
         })
 
     # Score trend by term from real ReportCard data

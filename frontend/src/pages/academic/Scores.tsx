@@ -519,7 +519,7 @@ export default function Scores() {
                 </div>
 
                 {/* Rankings table */}
-                <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm ">
+                <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-sm ">
                   <div className="border-b border-slate-100 px-5 py-3 bg-slate-50 ">
                     <h3 className="font-semibold text-[#122b59] ">Student Rankings</h3>
                   </div>

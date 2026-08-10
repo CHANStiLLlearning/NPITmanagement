@@ -109,6 +109,10 @@ def count_students(
 
 
 def create_student(db: Session, student: StudentCreate) -> Student:
+    from app.models.user import User, RoleEnum
+    from app.core.security import get_password_hash
+    from sqlalchemy import func
+
     student_id = generate_student_id(db)
     qr = generate_qr_code(student_id)
     db_student = Student(
@@ -117,6 +121,22 @@ def create_student(db: Session, student: StudentCreate) -> Student:
         qr_code=qr,
     )
     db.add(db_student)
+
+    # Auto-create User login account if email provided and doesn't exist
+    if student.email:
+        clean_email = student.email.strip().lower()
+        existing_user = db.query(User).filter(func.lower(User.email) == clean_email).first()
+        if not existing_user:
+            user = User(
+                email=clean_email,
+                hashed_password=get_password_hash("Student@123"),
+                first_name=student.first_name,
+                last_name=student.last_name,
+                role=RoleEnum.student,
+                is_active=True,
+            )
+            db.add(user)
+
     db.commit()
     db.refresh(db_student)
     return db_student

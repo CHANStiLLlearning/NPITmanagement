@@ -184,7 +184,7 @@ export default function UsersManager() {
           </div>
         )}
 
-        <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xs">
+        <div className="overflow-x-auto rounded-2xl border border-blue-100 bg-white shadow-2xs">
           {/* Hidden file input for per-row avatar upload */}
           <input
             ref={avatarInputRef}

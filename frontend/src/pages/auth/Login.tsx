@@ -47,7 +47,7 @@ export default function Login() {
 
   return (
     <div
-      className="relative flex h-screen w-screen overflow-hidden items-center justify-center bg-[#0a1f44] bg-cover bg-center px-4 py-4"
+      className="relative flex min-h-screen min-h-[100dvh] w-full overflow-y-auto items-center justify-center bg-[#0a1f44] bg-cover bg-center px-4 py-4"
       style={{ backgroundImage: "url('/bg.jpg')" }}
     >
       {/* Darkened Overlay */}

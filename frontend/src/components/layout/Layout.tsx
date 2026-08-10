@@ -29,7 +29,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-[#0a1f44] transition-colors duration-200">
+    <div className="flex h-screen min-h-[100dvh] w-screen overflow-hidden bg-slate-50 text-[#0a1f44] transition-colors duration-200">
       {/* Desktop Permanent Sidebar */}
       <div className="hidden md:flex h-full shrink-0">
         <Sidebar />

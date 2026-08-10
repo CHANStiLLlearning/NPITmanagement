@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import date, datetime
 from app.models.student import GenderEnum, StatusEnum
@@ -27,6 +27,20 @@ class StudentBase(BaseModel):
     allergies: Optional[str] = None
     medical_conditions: Optional[str] = None
     medical_notes: Optional[str] = None
+
+    @field_validator("date_of_birth", "enrollment_date", mode="before")
+    @classmethod
+    def parse_empty_date(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
+    @field_validator("email", "phone", "address", "class_name", "section", "guardian_name", "guardian_phone", "guardian_email", "guardian_relationship", mode="before")
+    @classmethod
+    def parse_empty_string(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class StudentCreate(StudentBase):
@@ -58,6 +72,20 @@ class StudentUpdate(BaseModel):
     medical_notes: Optional[str] = None
     photo_url: Optional[str] = None
     is_active: Optional[bool] = None
+
+    @field_validator("date_of_birth", "enrollment_date", mode="before")
+    @classmethod
+    def parse_empty_date(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
+    @field_validator("email", "phone", "address", "class_name", "section", "guardian_name", "guardian_phone", "guardian_email", "guardian_relationship", mode="before")
+    @classmethod
+    def parse_empty_string(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class StudentInDB(StudentBase):
