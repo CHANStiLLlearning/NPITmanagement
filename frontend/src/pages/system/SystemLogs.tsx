@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   ShieldAlert, LogIn, LogOut, PlusCircle, Edit3, Trash2,
-  Download, Search, RefreshCw, Filter, ShieldCheck, Globe, Clock, User
+  Download, Search, RefreshCw, ShieldCheck, Globe, Clock, User,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -30,12 +31,20 @@ const ACTION_CONFIG: Record<string, { label: string; badge: string; icon: React.
   export:       { label: 'Export',       badge: 'bg-purple-100 text-purple-700 border-purple-200', icon: Download   },
 };
 
+const ROWS_PER_PAGE = 10;
+
 export default function SystemLogs() {
-  const [search, setSearch]           = useState('');
+  const [search, setSearch]             = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
+  const [currentPage, setCurrentPage]   = useState(1);
 
-  const { data: logs = [], isLoading, refetch } = useQuery<AuditLog[]>({
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, actionFilter, moduleFilter]);
+
+  const { data: logs = [], refetch } = useQuery<AuditLog[]>({
     queryKey: ['system-logs', search, actionFilter, moduleFilter],
     queryFn: async () => {
       const params: Record<string, string> = {};
@@ -47,6 +56,13 @@ export default function SystemLogs() {
     },
   });
 
+  const totalPages = useMemo(() => Math.ceil(logs.length / ROWS_PER_PAGE) || 1, [logs.length]);
+
+  const paginatedLogs = useMemo(() => {
+    const start = (currentPage - 1) * ROWS_PER_PAGE;
+    return logs.slice(start, start + ROWS_PER_PAGE);
+  }, [logs, currentPage]);
+
   const exportCSV = async () => {
     const params = new URLSearchParams();
     if (search)       params.append('search', search);
@@ -57,13 +73,16 @@ export default function SystemLogs() {
     const a = document.createElement('a'); a.href = url; a.download = 'system_audit_logs.csv'; a.click();
   };
 
+  const startCount = logs.length === 0 ? 0 : (currentPage - 1) * ROWS_PER_PAGE + 1;
+  const endCount   = Math.min(currentPage * ROWS_PER_PAGE, logs.length);
+
   return (
     <Layout>
       <div className="space-y-6 pb-12">
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-[#0a1f44] ">Audit Log &amp; System Events</h1>
+            <h1 className="text-2xl font-bold text-[#0a1f44]">Audit Log &amp; System Events</h1>
             <p className="text-sm text-slate-500">Real-time audit trail of system activities, logins, updates, deletes &amp; exports</p>
           </div>
           <div className="flex gap-2">
@@ -77,7 +96,7 @@ export default function SystemLogs() {
         </div>
 
         {/* Filter Bar */}
-        <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm ">
+        <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -85,14 +104,14 @@ export default function SystemLogs() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search user, IP address, details..."
-              className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2269ff] "
+              className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2269ff]"
             />
           </div>
 
           <select
             value={actionFilter}
             onChange={e => setActionFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-[#2269ff] ">
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-[#2269ff]">
             <option value="">All Actions</option>
             <option value="login">Login</option>
             <option value="logout">Logout</option>
@@ -105,7 +124,7 @@ export default function SystemLogs() {
           <select
             value={moduleFilter}
             onChange={e => setModuleFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-[#2269ff] ">
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-[#2269ff]">
             <option value="">All Modules</option>
             <option value="Auth">Auth</option>
             <option value="Students">Students</option>
@@ -118,25 +137,25 @@ export default function SystemLogs() {
         </div>
 
         {/* Audit Log Table */}
-        <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm ">
-          <div className="overflow-auto max-h-[calc(100vh-280px)]">
+        <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50 shadow-sm">
+              <thead className="border-b border-slate-100 bg-slate-50 shadow-xs">
                 <tr>
                   {['Timestamp', 'User', 'Action', 'Module', 'IP Address', 'Event Details'].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500 bg-slate-50">{h}</th>
+                    <th key={h} className="px-5 py-3.5 text-xs font-bold uppercase tracking-wide text-slate-500 bg-slate-50">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 ">
-                {logs.length === 0 ? (
+              <tbody className="divide-y divide-slate-100">
+                {paginatedLogs.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
                       No audit log events found matching criteria.
                     </td>
                   </tr>
                 ) : (
-                  logs.map((log, idx) => {
+                  paginatedLogs.map((log, idx) => {
                     const cfg = ACTION_CONFIG[log.action.toLowerCase()] || { label: log.action, badge: 'bg-slate-100 text-[#1c3a73] border-slate-200', icon: ShieldCheck };
                     const Icon = cfg.icon;
                     const formattedDate = new Date(log.timestamp).toLocaleString();
@@ -146,37 +165,37 @@ export default function SystemLogs() {
                         key={log.id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: idx * 0.01 }}
-                        className="hover:bg-slate-50 :bg-[#1c3a73]/40">
+                        transition={{ delay: idx * 0.02 }}
+                        className="hover:bg-slate-50/80 transition-colors">
                         <td className="px-5 py-3.5 whitespace-nowrap text-xs text-slate-500 font-mono">
                           <Clock className="inline h-3.5 w-3.5 mr-1 text-slate-400" />
                           {formattedDate}
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-[#2269ff] ">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-[#2269ff] font-bold text-xs shrink-0">
                               <User className="h-3.5 w-3.5" />
                             </div>
                             <div>
-                              <p className="font-medium text-[#0a1f44] text-xs">{log.user_name || log.user_email}</p>
+                              <p className="font-bold text-[#0a1f44] text-xs">{log.user_name || log.user_email}</p>
                               <p className="text-[11px] text-slate-400 font-mono">{log.user_email}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cfg.badge}`}>
+                          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${cfg.badge}`}>
                             <Icon className="h-3 w-3" />
                             {cfg.label}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 font-medium text-xs text-[#1c3a73] ">
+                        <td className="px-5 py-3.5 font-bold text-xs text-[#1c3a73]">
                           {log.module}
                         </td>
                         <td className="px-5 py-3.5 whitespace-nowrap text-xs font-mono text-slate-500">
                           <Globe className="inline h-3 w-3 mr-1 text-slate-400" />
                           {log.ip_address || '127.0.0.1'}
                         </td>
-                        <td className="px-5 py-3.5 text-xs text-slate-600 max-w-xs truncate" title={log.details || ''}>
+                        <td className="px-5 py-3.5 text-xs text-slate-600 max-w-xs truncate font-medium" title={log.details || ''}>
                           {log.details || '—'}
                         </td>
                       </motion.tr>
@@ -185,6 +204,48 @@ export default function SystemLogs() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* 10 Rows Pagination Controls Footer */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3.5">
+            <div className="text-xs font-bold text-slate-500">
+              Showing <span className="text-[#0a1f44]">{startCount}</span> to <span className="text-[#0a1f44]">{endCount}</span> of <span className="text-[#0a1f44]">{logs.length}</span> entries (១០ ជួរ/ទំព័រ)
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="h-8 rounded-lg px-2.5 text-xs font-bold text-slate-600 disabled:opacity-40">
+                <ChevronLeft className="h-4 w-4 mr-0.5" /> Previous
+              </Button>
+
+              <div className="flex items-center gap-1 px-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`h-8 w-8 rounded-lg text-xs font-extrabold transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-[#2269ff] text-white shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}>
+                    {pageNum}
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                className="h-8 rounded-lg px-2.5 text-xs font-bold text-slate-600 disabled:opacity-40">
+                Next <ChevronRight className="h-4 w-4 ml-0.5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
