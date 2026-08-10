@@ -11,7 +11,7 @@ export const apiClient = axios.create({
 // Interceptor to attach Auth Token automatically
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,6 +26,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && !window.location.pathname.startsWith('/login')) {
       // Token expired or unauthorized
+      localStorage.removeItem('access_token');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }

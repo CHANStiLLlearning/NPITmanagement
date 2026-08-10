@@ -71,7 +71,7 @@ export default function ParentsManager() {
               <tr>
                 <th className="px-6 py-3.5">ឈ្មោះអាណាព្យាបាល (Guardian Name)</th>
                 <th className="px-6 py-3.5">ឈ្មោះសិស្ស (Associated Student)</th>
-                <th className="px-6 py-3.5">ថ្នាក់រៀន (Class)</th>
+                <th className="px-6 py-3.5">មុខវិជ្ជា (Subject)</th>
                 <th className="px-6 py-3.5">លេខទូរស័ព្ទ (Phone Contact)</th>
                 <th className="px-6 py-3.5">អ៊ីមែល (Guardian Email)</th>
                 <th className="px-6 py-3.5">ស្ថានភាព (Status)</th>
@@ -89,14 +89,14 @@ export default function ParentsManager() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="rounded-full bg-blue-50 text-[#2269ff] border border-blue-200 px-2.5 py-0.5 text-[10px] font-black">
-                      {s.class_name || 'Grade 10'}
+                      {s.class_name || '—'}
                     </span>
                   </td>
                   <td className="px-6 py-4 font-mono text-[#1c3a73]">
-                    {s.guardian_phone || '012 345 678'}
+                    {s.guardian_phone || '—'}
                   </td>
                   <td className="px-6 py-4 font-mono text-slate-500">
-                    {s.guardian_email || `${s.first_name.toLowerCase()}.parent@gmail.com`}
+                    {s.guardian_email || '—'}
                   </td>
                   <td className="px-6 py-4">
                     <span className="rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-0.5 text-[10px] font-black border border-emerald-200">

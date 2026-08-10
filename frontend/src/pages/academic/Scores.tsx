@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -78,8 +78,7 @@ const GRADE_COLORS: Record<string, string> = {
   'F':  'bg-red-500',
 };
 
-const CLASSES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
-const SUBJECTS = ['Mathematics','Science','English','History','Geography','Physics','Chemistry','Biology','Computer Science','Physical Education','Arts','Music'];
+
 const TERMS = ['Term 1', 'Term 2', 'Term 3', 'Semester 1', 'Semester 2', 'Annual'];
 
 const TABS = ['Category Setup', 'Grade Book', 'Results & Rankings', 'Report Cards'];
@@ -164,7 +163,6 @@ export default function Scores() {
   const isReviewer = ['super_admin', 'admin', 'principal'].includes(user?.role ?? '');
 
   const [activeTab, setActiveTab] = useState(0);
-  const [selClass,   setSelClass]   = useState('');
   const [selSubject, setSelSubject] = useState('');
   const [selTerm,    setSelTerm]    = useState('Term 1');
 
@@ -183,47 +181,50 @@ export default function Scores() {
   const [pcComment, setPcComment] = useState('');
 
   // Queries
+  const { data: dbSubjects = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['subjects'],
+    queryFn: async () => (await axios.get('/academic/subjects')).data,
+  });
+
+  const subjectsList = useMemo(() => dbSubjects.map(s => s.name), [dbSubjects]);
   const { data: categories = [], isLoading: catsLoading } = useQuery<ScoreCategory[]>({
-    queryKey: ['score-categories', selClass, selSubject, selTerm],
+    queryKey: ['score-categories', selSubject, selTerm],
     queryFn: async () => {
       const p: Record<string,string> = {};
-      if (selClass)   p.class_name = selClass;
-      if (selSubject) p.subject    = selSubject;
+      if (selSubject) p.class_name = selSubject;
       if (selTerm)    p.term       = selTerm;
       const { data } = await axios.get('/scores/categories', { params: p });
       return data;
     },
-    enabled: !!selClass,
+    enabled: !!selSubject,
   });
 
   const { data: gradebook, isLoading: gbLoading, refetch: refetchGb } = useQuery<GradeBook>({
-    queryKey: ['gradebook', selClass, selSubject, selTerm],
+    queryKey: ['gradebook', selSubject, selTerm],
     queryFn: async () => {
-      const p: Record<string,string> = { class_name: selClass };
-      if (selSubject) p.subject = selSubject;
-      if (selTerm)    p.term    = selTerm;
+      const p: Record<string,string> = { class_name: selSubject };
+      if (selTerm) p.term = selTerm;
       const { data } = await axios.get('/scores/gradebook', { params: p });
       return data;
     },
-    enabled: !!selClass,
+    enabled: !!selSubject,
   });
 
   const { data: reportCards = [], refetch: refetchCards } = useQuery<ReportCard[]>({
-    queryKey: ['report-cards', selClass, selSubject, selTerm],
+    queryKey: ['report-cards', selSubject, selTerm],
     queryFn: async () => {
       const p: Record<string,string> = {};
-      if (selClass)   p.class_name = selClass;
-      if (selSubject) p.subject    = selSubject;
+      if (selSubject) p.class_name = selSubject;
       if (selTerm)    p.term       = selTerm;
       const { data } = await axios.get('/scores/report-cards', { params: p });
       return data;
     },
-    enabled: !!selClass && activeTab === 3,
+    enabled: !!selSubject && activeTab === 3,
   });
 
   // Mutations
   const createCatMutation = useMutation({
-    mutationFn: (d: typeof catForm) => axios.post('/scores/categories', { ...d, class_name: selClass, subject: selSubject || undefined, term: selTerm }),
+    mutationFn: (d: typeof catForm) => axios.post('/scores/categories', { ...d, class_name: selSubject, term: selTerm }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['score-categories'] }); setShowCatForm(false); setCatForm({ name: '', category_type: 'assignment', weight_percent: 20, max_score: 100, description: '' }); },
   });
 
@@ -239,7 +240,7 @@ export default function Scores() {
   });
 
   const generateCardsMutation = useMutation({
-    mutationFn: () => axios.post('/scores/report-cards/generate', null, { params: { class_name: selClass, subject: selSubject || 'General', term: selTerm } }),
+    mutationFn: () => axios.post('/scores/report-cards/generate', null, { params: { class_name: selSubject, term: selTerm } }),
     onSuccess: () => { refetchCards(); queryClient.invalidateQueries({ queryKey: ['gradebook'] }); },
   });
 
@@ -276,22 +277,14 @@ export default function Scores() {
           </div>
         </div>
 
-        {/* Class / Subject / Term Selector */}
+        {/* Subject (មុខវិជ្ជា) / Term Selector */}
         <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm ">
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="text-xs font-medium text-slate-500">Class *</label>
-            <select value={selClass} onChange={e => setSelClass(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-[#2269ff] ">
-              <option value="">— Select Class —</option>
-              {CLASSES.map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="text-xs font-medium text-slate-500">Subject</label>
+          <div className="flex flex-col gap-1 min-w-[200px]">
+            <label className="text-xs font-medium text-slate-500">មុខវិជ្ជា (Subject) *</label>
             <select value={selSubject} onChange={e => setSelSubject(e.target.value)}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-[#2269ff] ">
-              <option value="">— All Subjects —</option>
-              {SUBJECTS.map(s => <option key={s}>{s}</option>)}
+              <option value="">— ជ្រើសរើសមុខវិជ្ជា (Select Subject) —</option>
+              {subjectsList.map((s: string) => <option key={s}>{s}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1 min-w-[140px]">
@@ -303,10 +296,10 @@ export default function Scores() {
           </div>
         </div>
 
-        {!selClass ? (
+        {!selSubject ? (
           <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 py-16 text-slate-400">
             <BookOpen className="h-12 w-12 opacity-40" />
-            <p className="text-sm font-medium">Select a class to begin</p>
+            <p className="text-sm font-medium">ជ្រើសរើសមុខវិជ្ជា (Select a Subject to begin)</p>
           </div>
         ) : (<>
 

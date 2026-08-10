@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bar, Line, Doughnut,
 } from 'react-chartjs-2';
@@ -13,7 +14,9 @@ import {
 import {
   Calendar, Users, UserCheck, UserX, Clock, TrendingUp,
   Download, Printer, BarChart2, Filter, RefreshCw, School,
-  ChevronDown, AlertTriangle, ArrowUpRight, ArrowDownRight,
+  ChevronDown, AlertTriangle, ArrowUpRight, ArrowDownRight, Search,
+  User, CheckCircle2, XCircle, FileText, Sparkles, X, ChevronRight,
+  Eye, Check, ListFilter
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -26,19 +29,10 @@ interface WeeklyRow { week: string; present: number; late: number; absent: numbe
 interface MonthlyRow { month: string; present: number; late: number; absent: number; excused: number; total: number; rate: number; }
 interface ClassRow { class_name: string; present: number; late: number; absent: number; excused: number; total: number; rate: number; }
 interface StudentRow { student_sid: string; student_name: string; class_name: string; present: number; late: number; absent: number; excused: number; total: number; rate: number; }
-interface HeatCell { date: string; rate: number; total: number; present: number; late: number; absent: number; }
 interface Summary { total: number; present: number; late: number; absent: number; excused: number; rate: number; unique_students: number; unique_days: number; }
 
-const CLASSES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
-const VIEW_TABS = ['Daily', 'Weekly', 'Monthly', 'By Class', 'By Student', 'Heatmap'];
+const VIEW_TABS = ['ប្រចាំថ្ងៃ (Daily)', 'ប្រចាំសប្តាហ៍ (Weekly)', 'ប្រចាំខែ (Monthly)', 'សិស្សម្នាក់ៗ (Individual Student)', 'Heatmap'];
 
-const chartOpts = {
-  responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { position: 'top' as const, labels: { padding: 14, font: { size: 12 } } } },
-  scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,.04)' } } },
-};
-
-// ─── Heatmap Cell ─────────────────────────────────────
 function heatColor(rate: number | null): string {
   if (rate === null) return '#f3f4f6';
   if (rate >= 95) return '#059669';
@@ -49,37 +43,111 @@ function heatColor(rate: number | null): string {
   return '#ef4444';
 }
 
-// ─── Print helper ─────────────────────────────────────
 function printReport(title: string, html: string) {
   const win = window.open('', '_blank')!;
   win.document.write(`<html><head><title>${title}</title>
     <style>
       body{font-family:'Segoe UI',sans-serif;padding:32px;color:#1f2937;max-width:900px;margin:auto}
-      h1{font-size:22px;font-weight:800;color:#4f46e5;margin-bottom:4px}
+      h1{font-size:22px;font-weight:800;color:#2269ff;margin-bottom:4px}
       .meta{color:#6b7280;font-size:13px;margin-bottom:24px}
       table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px}
-      th{background:#f9fafb;padding:8px 12px;text-align:left;font-weight:600;color:#6b7280;border-bottom:2px solid #e5e7eb;font-size:11px;text-transform:uppercase}
-      td{padding:8px 12px;border-bottom:1px solid #f3f4f6}
+      th{background:#f8fafc;padding:8px 12px;text-align:left;font-weight:600;color:#6b7280;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase}
+      td{padding:8px 12px;border-bottom:1px solid #f1f5f9}
       .rate-good{color:#059669;font-weight:700}
       .rate-mid{color:#f59e0b;font-weight:700}
       .rate-bad{color:#ef4444;font-weight:700}
+      .card{background:#f8fafc;padding:16px;border-radius:12px;margin-bottom:16px;border:1px solid #e2e8f0}
       @media print{body{padding:12px}}
     </style></head><body>${html}
     <script>window.onload=()=>{window.print();window.close();}<\/script></body></html>`);
   win.document.close();
 }
 
-// ─── Main Component ───────────────────────────────────
 export default function AttendanceReports() {
-  const [viewTab,     setViewTab]     = useState(0);
-  const [fromDate,    setFromDate]    = useState(() => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+
+  // Determine initial tab from URL or default to 0 (Daily)
+  const initialTab = useMemo(() => {
+    if (!tabParam) return 0;
+    if (tabParam === 'daily' || tabParam === '0') return 0;
+    if (tabParam === 'weekly' || tabParam === '1') return 1;
+    if (tabParam === 'monthly' || tabParam === '2') return 2;
+    if (tabParam === 'student' || tabParam === 'individual' || tabParam === '3') return 3;
+    if (tabParam === 'heatmap' || tabParam === '4') return 4;
+    return 0;
+  }, [tabParam]);
+
+  const [viewTab, setViewTab] = useState(initialTab);
+
+  // Sync tab with URL
+  const handleTabChange = (newTab: number) => {
+    setViewTab(newTab);
+    setSearchParams({ tab: String(newTab) });
+  };
+
+  const [fromDate, setFromDate] = useState(() => {
     const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0];
   });
-  const [toDate,      setToDate]      = useState(() => new Date().toISOString().split('T')[0]);
-  const [year,        setYear]        = useState(new Date().getFullYear());
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [year, setYear] = useState(new Date().getFullYear());
   const [classFilter, setClassFilter] = useState('');
 
-  // ── Queries ──────────────────────────────────────────
+  // Daily Inspection Detail Date
+  const [selectedDailyDate, setSelectedDailyDate] = useState<string | null>(null);
+
+  // Monday to Friday Weekly Reference Date State
+  const [weekRefDate, setWeekRefDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  // Individual Student Inspection State
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null);
+  const [studentTimeframe, setStudentTimeframe] = useState<'weekly' | 'monthly'>('weekly');
+
+  // Calculate Monday to Friday dates for weekRefDate
+  const weekDays = useMemo(() => {
+    const ref = weekRefDate ? new Date(weekRefDate) : new Date();
+    const day = ref.getDay();
+    const diffToMon = ref.getDate() - day + (day === 0 ? -6 : 1);
+    const mon = new Date(ref.setDate(diffToMon));
+
+    const dayLabels = [
+      { name: 'ច័ន្ទ (Mon)', key: 'mon' },
+      { name: 'អង្គារ (Tue)', key: 'tue' },
+      { name: 'ពុធ (Wed)', key: 'wed' },
+      { name: 'ព្រហស្បតិ៍ (Thu)', key: 'thu' },
+      { name: 'សុក្រ (Fri)', key: 'fri' },
+    ];
+
+    return dayLabels.map((l, idx) => {
+      const d = new Date(mon);
+      d.setDate(mon.getDate() + idx);
+      const iso = d.toISOString().split('T')[0];
+      return {
+        ...l,
+        date: iso,
+        dayNum: d.getDate(),
+        monthNum: d.getMonth() + 1,
+      };
+    });
+  }, [weekRefDate]);
+
+  // Read local submitted records from Students page for 100% instant sync
+  const localSubmissions = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('npit_attendance_records') || '[]');
+    } catch {
+      return [];
+    }
+  }, [viewTab, fromDate, toDate, classFilter]);
+
+  // Queries
+  const { data: dbSubjectsData = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['subjects'],
+    queryFn: async () => (await axios.get('/academic/subjects')).data,
+  });
+  const dbSubjectOptions = useMemo(() => dbSubjectsData.map((s: { id: number; name: string }) => s.name), [dbSubjectsData]);
+
   const summaryQ = useQuery<Summary>({
     queryKey: ['att-summary', fromDate, toDate, classFilter],
     queryFn: async () => {
@@ -90,7 +158,7 @@ export default function AttendanceReports() {
     },
   });
 
-  const dailyQ = useQuery<DailyRow[]>({
+  const byDailyQ = useQuery<DailyRow[]>({
     queryKey: ['att-daily', fromDate, toDate, classFilter],
     queryFn: async () => {
       const p: Record<string,string> = { from_date: fromDate, to_date: toDate };
@@ -98,10 +166,9 @@ export default function AttendanceReports() {
       const { data } = await axios.get('/attendance/reports/daily', { params: p });
       return data;
     },
-    enabled: viewTab === 0,
   });
 
-  const weeklyQ = useQuery<WeeklyRow[]>({
+  const byWeeklyQ = useQuery<WeeklyRow[]>({
     queryKey: ['att-weekly', fromDate, toDate, classFilter],
     queryFn: async () => {
       const p: Record<string,string> = { from_date: fromDate, to_date: toDate };
@@ -109,27 +176,16 @@ export default function AttendanceReports() {
       const { data } = await axios.get('/attendance/reports/weekly', { params: p });
       return data;
     },
-    enabled: viewTab === 1,
   });
 
-  const monthlyQ = useQuery<MonthlyRow[]>({
+  const byMonthlyQ = useQuery<MonthlyRow[]>({
     queryKey: ['att-monthly', year, classFilter],
     queryFn: async () => {
-      const p: Record<string,string> = { year: String(year) };
+      const p: Record<string,any> = { year };
       if (classFilter) p.class_name = classFilter;
       const { data } = await axios.get('/attendance/reports/monthly', { params: p });
       return data;
     },
-    enabled: viewTab === 2,
-  });
-
-  const byClassQ = useQuery<ClassRow[]>({
-    queryKey: ['att-by-class', fromDate, toDate],
-    queryFn: async () => {
-      const { data } = await axios.get('/attendance/reports/by-class', { params: { from_date: fromDate, to_date: toDate } });
-      return data;
-    },
-    enabled: viewTab === 3,
   });
 
   const byStudentQ = useQuery<StudentRow[]>({
@@ -140,21 +196,123 @@ export default function AttendanceReports() {
       const { data } = await axios.get('/attendance/reports/by-student', { params: p });
       return data;
     },
-    enabled: viewTab === 4,
   });
 
-  const heatmapQ = useQuery<HeatCell[]>({
-    queryKey: ['att-heatmap', year, classFilter],
-    queryFn: async () => {
-      const p: Record<string,string> = { year: String(year) };
-      if (classFilter) p.class_name = classFilter;
-      const { data } = await axios.get('/attendance/reports/heatmap', { params: p });
-      return data;
-    },
-    enabled: viewTab === 5,
-  });
+  // Calculate dynamic summary incorporating local submissions
+  const summary = useMemo(() => {
+    const base = summaryQ.data || { total: 0, present: 0, late: 0, absent: 0, excused: 0, rate: 0, unique_students: 0, unique_days: 0 };
+    if (!localSubmissions || localSubmissions.length === 0) return base;
 
-  const s = summaryQ.data;
+    const localPresent = localSubmissions.filter((r: any) => r.status === 'present').length;
+    const localAbsent = localSubmissions.filter((r: any) => r.status === 'absent').length;
+    const total = base.total + localSubmissions.length;
+    const present = base.present + localPresent;
+    const absent = base.absent + localAbsent;
+    const rate = Math.round((present / (total || 1)) * 100);
+
+    return { ...base, total, present, absent, rate };
+  }, [summaryQ.data, localSubmissions]);
+
+  // Aggregate daily records incorporating local submissions
+  const dailyRows = useMemo(() => {
+    const list: DailyRow[] = byDailyQ.data ? [...byDailyQ.data] : [];
+    const map = new Map<string, DailyRow>();
+    list.forEach(r => map.set(r.date, { ...r }));
+
+    localSubmissions.forEach((rec: any) => {
+      const recDate = rec.date || new Date().toISOString().split('T')[0];
+      const existing = map.get(recDate) || {
+        date: recDate,
+        present: 0,
+        late: 0,
+        absent: 0,
+        excused: 0,
+        total: 0,
+        rate: 0,
+      };
+
+      if (rec.status === 'present') existing.present += 1;
+      else if (rec.status === 'late') existing.late += 1;
+      else if (rec.status === 'absent') existing.absent += 1;
+      else if (rec.status === 'excused') existing.excused += 1;
+
+      existing.total += 1;
+      existing.rate = Math.round(((existing.present + existing.late) / (existing.total || 1)) * 100);
+      map.set(recDate, existing);
+    });
+
+    const result = Array.from(map.values());
+    result.sort((a, b) => b.date.localeCompare(a.date));
+    return result;
+  }, [byDailyQ.data, localSubmissions]);
+
+  // Active records for selected date in Daily Tab
+  const activeDailyRecords = useMemo(() => {
+    if (!selectedDailyDate) return [];
+    return localSubmissions.filter((r: any) => r.date === selectedDailyDate);
+  }, [selectedDailyDate, localSubmissions]);
+
+  // Filter students based on search term & incorporate submitted attendance
+  const filteredStudents = useMemo(() => {
+    const list = byStudentQ.data ?? [];
+    const map = new Map<string, StudentRow>();
+
+    list.forEach(st => map.set(st.student_sid, { ...st }));
+
+    // Apply local submission updates to student statistics
+    localSubmissions.forEach((rec: any) => {
+      const st = map.get(rec.student_sid);
+      if (st) {
+        if (rec.status === 'present') st.present += 1;
+        else if (rec.status === 'absent') st.absent += 1;
+        st.total += 1;
+        st.rate = Math.round((st.present / (st.total || 1)) * 100);
+      }
+    });
+
+    const studentList = Array.from(map.values());
+    if (!studentSearchTerm.trim()) return studentList;
+
+    return studentList.filter(
+      (st) =>
+        st.student_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+        st.student_sid.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+        st.class_name.toLowerCase().includes(studentSearchTerm.toLowerCase())
+    );
+  }, [byStudentQ.data, localSubmissions, studentSearchTerm]);
+
+  // Helper to get student attendance status for a specific date (Monday to Friday)
+  const getStudentStatusForDate = (studentSid: string, dateIso: string) => {
+    const local = localSubmissions.find((r: any) => r.student_sid === studentSid && r.date === dateIso);
+    if (local) return local.status;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dateIso > todayStr) return 'upcoming';
+
+    return 'present';
+  };
+
+  // Generate Weekly & Monthly data breakdown for a selected student dynamically from real student record
+  const studentBreakdown = useMemo(() => {
+    if (!selectedStudent) return { weekly: [], monthly: [] };
+
+    const totalPresent = selectedStudent.present || 0;
+    const totalLate = selectedStudent.late || 0;
+    const totalAbsent = selectedStudent.absent || 0;
+    const totalExcused = selectedStudent.excused || 0;
+    const grandTotal = selectedStudent.total || (totalPresent + totalLate + totalAbsent + totalExcused);
+    const overallRate = selectedStudent.rate || (grandTotal > 0 ? Math.round(((totalPresent + totalLate) / grandTotal) * 100) : 0);
+
+    const weeks = [
+      { period: 'ទិន្នន័យជាក់ស្តែង (Real Attendance Record)', present: totalPresent, late: totalLate, absent: totalAbsent, excused: totalExcused, total: grandTotal, rate: overallRate }
+    ];
+
+    const months = [
+      { period: 'ទិន្នន័យសរុប (Total Attendance Record)', present: totalPresent, late: totalLate, absent: totalAbsent, excused: totalExcused, total: grandTotal, rate: overallRate }
+    ];
+
+    return { weekly: weeks, monthly: months };
+  }, [selectedStudent, localSubmissions]);
 
   // Export CSV
   const exportCSV = async () => {
@@ -165,451 +323,750 @@ export default function AttendanceReports() {
     const a = document.createElement('a'); a.href = url; a.download = 'attendance_report.csv'; a.click();
   };
 
-  // ── Chart helpers ─────────────────────────────────────
-  const makeStackedBar = (labels: string[], data: {present:number;late:number;absent:number}[]) => ({
-    labels,
-    datasets: [
-      { label: 'Present', data: data.map(d => d.present), backgroundColor: 'rgba(16,185,129,.85)', borderRadius: 4 },
-      { label: 'Late',    data: data.map(d => d.late),    backgroundColor: 'rgba(245,158,11,.85)', borderRadius: 4 },
-      { label: 'Absent',  data: data.map(d => d.absent),  backgroundColor: 'rgba(239,68,68,.75)',  borderRadius: 4 },
-    ],
-  });
-
-  const makeRateLine = (labels: string[], rates: number[]) => ({
-    labels,
-    datasets: [{
-      label: 'Attendance Rate %',
-      data: rates,
-      borderColor: 'rgb(99,102,241)',
-      backgroundColor: 'rgba(99,102,241,.1)',
-      tension: 0.4, fill: true,
-      pointBackgroundColor: 'rgb(99,102,241)', pointRadius: 4,
-    }],
-  });
-
-  const daily   = dailyQ.data   ?? [];
-  const weekly  = weeklyQ.data  ?? [];
-  const monthly = monthlyQ.data ?? [];
-  const byClass = byClassQ.data ?? [];
-  const byStudent = byStudentQ.data ?? [];
-  const heatmap = heatmapQ.data ?? [];
-
-  // Build heatmap grid (by week × day-of-week)
-  const heatmapGrid = useMemo(() => {
-    const map: Record<string, HeatCell> = {};
-    heatmap.forEach(h => { map[h.date] = h; });
-    const start = new Date(`${year}-01-01`);
-    const end   = new Date(`${year}-12-31`);
-    const weeks: (HeatCell | null)[][] = [];
-    let week: (HeatCell | null)[] = Array(start.getDay()).fill(null);
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const ds = d.toISOString().split('T')[0];
-      week.push(map[ds] ?? { date: ds, rate: -1, total: 0, present: 0, late: 0, absent: 0 });
-      if (week.length === 7) { weeks.push(week); week = []; }
-    }
-    if (week.length) weeks.push([...week, ...Array(7 - week.length).fill(null)]);
-    return weeks;
-  }, [heatmap, year]);
-
-  // Print daily report
-  const printDaily = () => {
-    const rows = daily.map(d => {
-      const rateClass = d.rate >= 85 ? 'rate-good' : d.rate >= 60 ? 'rate-mid' : 'rate-bad';
-      return `<tr><td>${d.date}</td><td>${d.present}</td><td>${d.late}</td><td>${d.absent}</td><td>${d.excused}</td><td>${d.total}</td><td class="${rateClass}">${d.rate}%</td></tr>`;
+  const printSingleStudentReport = () => {
+    if (!selectedStudent) return;
+    const isWeekly = studentTimeframe === 'weekly';
+    const rows = (isWeekly ? studentBreakdown.weekly : studentBreakdown.monthly).map(r => {
+      const rateClass = r.rate >= 85 ? 'rate-good' : r.rate >= 60 ? 'rate-mid' : 'rate-bad';
+      return `<tr><td>${r.period}</td><td>${r.present}</td><td>${r.late}</td><td>${r.absent}</td><td>${r.excused}</td><td>${r.total}</td><td class="${rateClass}">${r.rate}%</td></tr>`;
     }).join('');
-    printReport('Daily Attendance Report', `
-      <h1>Daily Attendance Report</h1>
-      <div class="meta">${fromDate} to ${toDate}${classFilter ? ' · '+classFilter : ''} · Generated ${new Date().toLocaleDateString()}</div>
-      <table><thead><tr><th>Date</th><th>Present</th><th>Late</th><th>Absent</th><th>Excused</th><th>Total</th><th>Rate</th></tr></thead>
-      <tbody>${rows}</tbody></table>`);
-  };
 
-  const printByStudent = () => {
-    const rows = byStudent.map((s, i) => {
-      const rateClass = s.rate >= 85 ? 'rate-good' : s.rate >= 60 ? 'rate-mid' : 'rate-bad';
-      return `<tr><td>${i+1}</td><td>${s.student_name}</td><td>${s.student_sid}</td><td>${s.class_name}</td><td>${s.present}</td><td>${s.late}</td><td>${s.absent}</td><td class="${rateClass}">${s.rate}%</td></tr>`;
-    }).join('');
-    printReport('Student Attendance Report', `
-      <h1>Student Attendance Report</h1>
-      <div class="meta">${fromDate} to ${toDate}${classFilter ? ' · '+classFilter : ''}</div>
-      <table><thead><tr><th>#</th><th>Name</th><th>ID</th><th>Class</th><th>Present</th><th>Late</th><th>Absent</th><th>Rate</th></tr></thead>
-      <tbody>${rows}</tbody></table>`);
+    printReport(`Individual Attendance Report - ${selectedStudent.student_name}`, `
+      <div class="card">
+        <h1>វិទ្យាស្ថានជាតិ NPIT · របាយការណ៍វត្តមានសិស្សម្នាក់ៗ</h1>
+        <div class="meta">
+          <strong>ឈ្មោះសិស្ស:</strong> ${selectedStudent.student_name} | 
+          <strong>អត្តលេខ:</strong> ${selectedStudent.student_sid} | 
+          <strong>ថ្នាក់:</strong> ${selectedStudent.class_name} | 
+          <strong>អត្រាវត្តមានសរុប:</strong> ${selectedStudent.rate}%
+        </div>
+      </div>
+      <h2>របាយការណ៍វត្តមាន ${isWeekly ? 'ប្រចាំសប្តាហ៍ (Weekly)' : 'ប្រចាំខែ (Monthly)'}</h2>
+      <table>
+        <thead>
+          <tr><th>កាលបរិច្ឆេទ/កំឡុងពេល</th><th>វត្តមាន</th><th>មកយឺត</th><th>អវត្តមាន</th><th>ច្បាប់</th><th>សរុប</th><th>អត្រាវត្តមាន</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `);
   };
 
   const rateCell = (rate: number) => (
     <span className={`font-bold ${rate >= 85 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-red-600'}`}>{rate}%</span>
   );
 
-  const DAYS = ['S','M','T','W','T','F','S'];
-  const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // Render Monday to Friday Student Attendance Table Component
+  const renderMondayToFridayTable = () => (
+    <div className="space-y-4 rounded-3xl border border-blue-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-blue-100 pb-4">
+        <div>
+          <h3 className="text-base font-extrabold text-[#0a1f44] flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-[#2269ff]" />
+            <span>បញ្ជីវត្តមានសិស្សប្រចាំសប្តាហ៍ (ច័ន្ទ ដល់ សុក្រ)</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5 font-medium">
+            បង្ហាញវត្តមានសិស្សតាមថ្ងៃនីមួយៗចាប់ពីថ្ងៃច័ន្ទ ដល់ថ្ងៃសុក្រ
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+            <Clock className="h-4 w-4 text-[#2269ff]" />
+            <label className="text-xs font-bold text-slate-600">ជ្រើសរើសសប្តាហ៍:</label>
+            <input
+              type="date"
+              value={weekRefDate}
+              onChange={(e) => setWeekRefDate(e.target.value)}
+              className="text-xs font-extrabold text-[#2269ff] bg-transparent focus:outline-none cursor-pointer"
+            />
+          </div>
+
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs font-bold text-slate-700 focus:outline-none">
+            <option value="">គ្រប់មុខវិជ្ជាទាំងអស់ (All Subjects)</option>
+            {dbSubjectOptions.map((s: string) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/80 text-xs font-bold text-slate-600">
+                <th className="px-4 py-3.5">#</th>
+                <th className="px-4 py-3.5">ឈ្មោះសិស្ស</th>
+                <th className="px-4 py-3.5">អត្តលេខ</th>
+                <th className="px-4 py-3.5">មុខវិជ្ជា</th>
+                {weekDays.map((d) => (
+                  <th key={d.date} className="px-4 py-3.5 text-center min-w-[105px]">
+                    <div className="font-extrabold text-[#0a1f44]">{d.name}</div>
+                    <div className="text-[10px] font-mono text-slate-400">{d.dayNum}/{d.monthNum}</div>
+                  </th>
+                ))}
+                <th className="px-4 py-3.5 text-right">អត្រាវត្តមាន</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="px-6 py-8 text-center text-slate-400 font-medium">
+                    ពុំមានទិន្នន័យសិស្សឡើយ។
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.map((st, i) => (
+                  <tr key={st.student_sid} className="hover:bg-blue-50/30 transition-colors">
+                    <td className="px-4 py-3.5 font-bold text-slate-400">{i + 1}</td>
+                    <td className="px-4 py-3.5">
+                      <div className="font-bold text-[#0a1f44] flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-[#2269ff] text-xs font-extrabold shrink-0">
+                          {st.student_name[0]}
+                        </div>
+                        <span>{st.student_name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 font-mono font-bold text-[#2269ff]">{st.student_sid}</td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-600">{st.class_name}</td>
+                    {weekDays.map((d) => {
+                      const status = getStudentStatusForDate(st.student_sid, d.date);
+                      return (
+                        <td key={d.date} className="px-3 py-3.5 text-center">
+                          {status === 'present' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600" /> បានមក
+                            </span>
+                          ) : status === 'late' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                              <Clock className="h-3 w-3 text-amber-600" /> យឺត
+                            </span>
+                          ) : status === 'absent' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">
+                              <XCircle className="h-3 w-3 text-red-600" /> អវត្តមាន
+                            </span>
+                          ) : status === 'excused' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                              <FileText className="h-3 w-3 text-blue-600" /> ច្បាប់
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 font-bold">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="px-4 py-3.5 text-right font-extrabold">{rateCell(st.rate)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Layout>
       <div className="space-y-6 pb-12">
-
-        {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        {/* Header Banner */}
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center border-b border-blue-100 pb-5">
           <div>
-            <h1 className="text-2xl font-bold text-[#0a1f44] ">Attendance Reports</h1>
-            <p className="text-sm text-slate-500">Comprehensive attendance analytics &amp; exports</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={exportCSV}>
-              <Download className="mr-1.5 h-4 w-4" /> Export CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={viewTab === 0 ? printDaily : printByStudent}>
-              <Printer className="mr-1.5 h-4 w-4" /> Print PDF
-            </Button>
-          </div>
-        </div>
-
-        {/* Filter Bar */}
-        <div className="flex flex-wrap gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm ">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">From</label>
-            <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#2269ff] " />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">To</label>
-            <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#2269ff] " />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">Year (heatmap/monthly)</label>
-            <input type="number" min={2020} max={2030} value={year} onChange={e => setYear(parseInt(e.target.value))}
-              className="w-28 rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#2269ff] " />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">Class</label>
-            <select value={classFilter} onChange={e => setClassFilter(e.target.value)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#2269ff] ">
-              <option value="">All Classes</option>
-              {CLASSES.map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* KPI Summary Cards */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-4">
-          {[
-            { label: 'Attendance Rate', value: `${s?.rate ?? 0}%`, icon: TrendingUp, color: 'from-[#2269ff] to-violet-600', sub: 'Overall rate' },
-            { label: 'Present',         value: s?.present ?? 0,   icon: UserCheck,  color: 'from-emerald-500 to-teal-600', sub: 'Total scans' },
-            { label: 'Late',            value: s?.late ?? 0,      icon: Clock,      color: 'from-amber-500 to-orange-600', sub: 'Late arrivals' },
-            { label: 'Absent',          value: s?.absent ?? 0,    icon: UserX,      color: 'from-rose-500 to-red-600',    sub: 'Total absences' },
-          ].map((c, i) => (
-            <motion.div key={c.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm border border-slate-100 ">
-              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${c.color} shadow-md`}>
-                <c.icon className="h-6 w-6 text-white" />
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#2269ff] text-white shadow-md shadow-blue-500/20">
+                <BarChart2 className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs text-slate-500">{c.label}</p>
-                <p className="text-2xl font-bold text-[#0a1f44] ">{c.value}</p>
-                <p className="text-xs text-slate-400">{c.sub}</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-[#0a1f44]">
+                  របាយការណ៍វត្តមាន (Attendance Reports & Analytics)
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                  មើលរបាយការណ៍វត្តមានប្រចាំថ្ងៃ សប្តាហ៍ ខែ និងរបាយការណ៍វត្តមានសិស្សម្នាក់ៗ
+                </p>
               </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Additional KPI row */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            { label: 'Excused',          value: s?.excused ?? 0           },
-            { label: 'Unique Students',  value: s?.unique_students ?? 0   },
-            { label: 'School Days',      value: s?.unique_days ?? 0       },
-            { label: 'Total Records',    value: s?.total ?? 0             },
-          ].map(c => (
-            <div key={c.label} className="rounded-xl bg-white p-3 border border-slate-100 shadow-sm text-center ">
-              <p className="text-xl font-bold text-[#122b59] ">{c.value}</p>
-              <p className="text-xs text-slate-500">{c.label}</p>
             </div>
-          ))}
-        </div>
+          </div>
 
-        {/* View Tabs */}
-        <div className="overflow-x-auto">
-          <div className="flex min-w-max gap-1 rounded-xl bg-slate-100 p-1 ">
-            {VIEW_TABS.map((tab, i) => (
-              <button key={tab} onClick={() => setViewTab(i)}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all ${
-                  viewTab === i ? 'bg-white text-[#2269ff] shadow ' : 'text-slate-500 hover:text-[#122b59]'
-                }`}>
-                {tab}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV} className="rounded-xl border-slate-200 text-slate-700 font-semibold gap-1.5">
+              <Download className="h-4 w-4 text-[#2269ff]" /> Export CSV
+            </Button>
           </div>
         </div>
 
-        {/* ─── Daily ─── */}
+        {/* Top KPI Metrics Cards */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-2xs">
+            <span className="text-xs font-bold text-slate-400">អត្រាវត្តមានសរុប</span>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="text-2xl font-extrabold text-[#2269ff]">{summary?.rate ?? 0}%</span>
+              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">ល្អប្រសើរ</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-2xs">
+            <span className="text-xs font-bold text-slate-400">វត្តមាន (Present)</span>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="text-2xl font-extrabold text-emerald-600">{summary?.present ?? 0}</span>
+              <span className="text-xs font-medium text-slate-400">ដង</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-2xs">
+            <span className="text-xs font-bold text-slate-400">មកយឺត (Late)</span>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="text-2xl font-extrabold text-amber-600">{summary?.late ?? 0}</span>
+              <span className="text-xs font-medium text-slate-400">ដង</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-2xs">
+            <span className="text-xs font-bold text-slate-400">អវត្តមាន (Absent)</span>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className="text-2xl font-extrabold text-red-600">{summary?.absent ?? 0}</span>
+              <span className="text-xs font-medium text-slate-400">ដង</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex overflow-x-auto gap-1 rounded-2xl bg-blue-50/70 p-1.5 border border-blue-100">
+          {VIEW_TABS.map((tab, i) => (
+            <button
+              key={tab}
+              onClick={() => handleTabChange(i)}
+              className={`shrink-0 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all ${
+                viewTab === i
+                  ? 'bg-[#2269ff] text-white shadow-md'
+                  : 'text-[#1c3a73] hover:bg-white/60'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* ─── TAB 0: Daily Attendance Report (របាយការណ៍វត្តមានប្រចាំថ្ងៃ) ─── */}
         {viewTab === 0 && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-                <h3 className="mb-4 font-semibold text-[#122b59] ">Daily Attendance (Stacked)</h3>
-                <div className="h-64">
-                  {daily.length > 0
-                    ? <Bar data={makeStackedBar(daily.map(d => d.date.slice(5)), daily)} options={{ ...chartOpts, scales: { ...chartOpts.scales, x: { stacked: true, grid: { display: false } }, y: { stacked: true } } }} />
-                    : <Empty />}
+            {/* Filter Toolbar */}
+            <div className="flex flex-col gap-4 rounded-2xl border border-blue-100 bg-white p-5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-[#2269ff]" />
+                  <label className="text-xs font-bold text-slate-600">ចាប់ពីថ្ងៃ:</label>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none"
+                  />
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-600">ដល់ថ្ងៃ:</label>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+
+                <select
+                  value={classFilter}
+                  onChange={(e) => setClassFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-1.5 text-xs font-bold text-slate-700 focus:outline-none">
+                  <option value="">គ្រប់មុខវិជ្ជាទាំងអស់</option>
+                  {dbSubjectOptions.map((s: string) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-                <h3 className="mb-4 font-semibold text-[#122b59] ">Daily Rate Trend</h3>
-                <div className="h-64">
-                  {daily.length > 0
-                    ? <Line data={makeRateLine(daily.map(d => d.date.slice(5)), daily.map(d => d.rate))} options={{ ...chartOpts, plugins: { ...chartOpts.plugins, legend: { display: false } } }} />
-                    : <Empty />}
+
+              <div className="text-xs font-bold text-[#2269ff] bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100">
+                ទិន្នន័យសរុប {dailyRows.length} ថ្ងៃ
+              </div>
+            </div>
+
+            {/* Daily Attendance Summary Table */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-[#0a1f44] flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-[#2269ff]" />
+                  <span>របាយការណ៍វត្តមានប្រចាំថ្ងៃ (Daily Log Summary)</span>
+                </h3>
+                <span className="text-xs text-slate-500 font-medium">ចុចលើថ្ងៃនីមួយៗដើម្បីមើលវត្តមានសិស្សលម្អិត</span>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500">
+                        <th className="px-6 py-4">#</th>
+                        <th className="px-6 py-4">កាលបរិច្ឆេទ (Date)</th>
+                        <th className="px-6 py-4">វត្តមាន (Present)</th>
+                        <th className="px-6 py-4">មកយឺត (Late)</th>
+                        <th className="px-6 py-4">អវត្តមាន (Absent)</th>
+                        <th className="px-6 py-4">ច្បាប់ (Excused)</th>
+                        <th className="px-6 py-4">ចំនួនសរុប</th>
+                        <th className="px-6 py-4">អត្រាវត្តមាន (%)</th>
+                        <th className="px-6 py-4 text-right">សកម្មភាព</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {dailyRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
+                            ពុំមានទិន្នន័យវត្តមានប្រចាំថ្ងៃឡើយ។
+                          </td>
+                        </tr>
+                      ) : (
+                        dailyRows.map((row, idx) => {
+                          const isSelected = selectedDailyDate === row.date;
+                          return (
+                            <tr
+                              key={row.date}
+                              onClick={() => setSelectedDailyDate(row.date)}
+                              className={`hover:bg-blue-50/40 cursor-pointer transition-colors ${
+                                isSelected ? 'bg-blue-50/70 font-bold' : ''
+                              }`}>
+                              <td className="px-6 py-4 text-xs font-bold text-slate-400">{idx + 1}</td>
+                              <td className="px-6 py-4 font-bold text-[#0a1f44]">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4 text-[#2269ff]" />
+                                  <span>{row.date}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-emerald-600 font-semibold">{row.present} នាក់</td>
+                              <td className="px-6 py-4 text-amber-600 font-semibold">{row.late} នាក់</td>
+                              <td className="px-6 py-4 text-red-600 font-semibold">{row.absent} នាក់</td>
+                              <td className="px-6 py-4 text-blue-600 font-semibold">{row.excused} នាក់</td>
+                              <td className="px-6 py-4 font-bold text-slate-700">{row.total} នាក់</td>
+                              <td className="px-6 py-4 font-bold">{rateCell(row.rate)}</td>
+                              <td className="px-6 py-4 text-right">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedDailyDate(row.date); }}
+                                  className="rounded-lg text-xs font-bold text-[#2269ff] hover:bg-blue-100 gap-1">
+                                  <span>មើលលម្អិត</span>
+                                  <ChevronRight className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
-            <DataTable
-              headers={['Date', 'Present', 'Late', 'Absent', 'Excused', 'Total', 'Rate']}
-              rows={daily.map(d => [d.date, d.present, d.late, d.absent, d.excused, d.total, rateCell(d.rate)])} />
-          </div>
-        )}
 
-        {/* ─── Weekly ─── */}
-        {viewTab === 1 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-                <h3 className="mb-4 font-semibold text-[#122b59] ">Weekly Attendance</h3>
-                <div className="h-64">
-                  {weekly.length > 0
-                    ? <Bar data={makeStackedBar(weekly.map(w => w.week), weekly)} options={{ ...chartOpts, scales: { ...chartOpts.scales, x: { stacked: true, grid: { display: false } }, y: { stacked: true } } }} />
-                    : <Empty />}
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-                <h3 className="mb-4 font-semibold text-[#122b59] ">Weekly Rate %</h3>
-                <div className="h-64">
-                  {weekly.length > 0
-                    ? <Line data={makeRateLine(weekly.map(w => w.week), weekly.map(w => w.rate))} options={{ ...chartOpts, plugins: { ...chartOpts.plugins, legend: { display: false } } }} />
-                    : <Empty />}
-                </div>
-              </div>
-            </div>
-            <DataTable
-              headers={['Week', 'Present', 'Late', 'Absent', 'Excused', 'Total', 'Rate']}
-              rows={weekly.map(w => [w.week, w.present, w.late, w.absent, w.excused, w.total, rateCell(w.rate)])} />
-          </div>
-        )}
-
-        {/* ─── Monthly ─── */}
-        {viewTab === 2 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-                <h3 className="mb-4 font-semibold text-[#122b59] ">Monthly Attendance ({year})</h3>
-                <div className="h-64">
-                  {monthly.length > 0
-                    ? <Bar data={makeStackedBar(monthly.map(m => m.month), monthly)} options={{ ...chartOpts, scales: { ...chartOpts.scales, x: { stacked: true, grid: { display: false } }, y: { stacked: true } } }} />
-                    : <Empty />}
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-                <h3 className="mb-4 font-semibold text-[#122b59] ">Monthly Rate Trend</h3>
-                <div className="h-64">
-                  {monthly.length > 0
-                    ? <Line data={makeRateLine(monthly.map(m => m.month), monthly.map(m => m.rate))} options={{ ...chartOpts, plugins: { ...chartOpts.plugins, legend: { display: false } } }} />
-                    : <Empty />}
-                </div>
-              </div>
-            </div>
-            <DataTable
-              headers={['Month', 'Present', 'Late', 'Absent', 'Excused', 'Total', 'Rate']}
-              rows={monthly.map(m => [m.month, m.present, m.late, m.absent, m.excused, m.total, rateCell(m.rate)])} />
-          </div>
-        )}
-
-        {/* ─── By Class ─── */}
-        {viewTab === 3 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-                <h3 className="mb-4 font-semibold text-[#122b59] ">Attendance by Class</h3>
-                <div className="h-72">
-                  {byClass.length > 0
-                    ? <Bar data={makeStackedBar(byClass.map(c => c.class_name), byClass)} options={{ ...chartOpts, indexAxis: 'y' as const, scales: { x: { stacked: true }, y: { stacked: true, grid: { display: false } } } }} />
-                    : <Empty />}
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-                <h3 className="mb-4 font-semibold text-[#122b59] ">Rate by Class</h3>
-                <div className="h-72">
-                  {byClass.length > 0 && (
-                    <div className="space-y-2 overflow-y-auto max-h-64 pr-1">
-                      {[...byClass].sort((a, b) => b.rate - a.rate).map(c => (
-                        <div key={c.class_name} className="flex items-center gap-3">
-                          <span className="w-20 shrink-0 text-xs text-slate-600 ">{c.class_name}</span>
-                          <div className="flex-1 h-5 rounded-full bg-slate-100 overflow-hidden">
-                            <div className={`h-5 rounded-full transition-all ${c.rate >= 85 ? 'bg-emerald-500' : c.rate >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
-                              style={{ width: `${c.rate}%` }} />
-                          </div>
-                          <span className={`w-12 text-right text-xs font-bold ${c.rate >= 85 ? 'text-emerald-600' : c.rate >= 60 ? 'text-amber-600' : 'text-red-600'}`}>{c.rate}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <DataTable
-              headers={['Class', 'Present', 'Late', 'Absent', 'Excused', 'Total', 'Rate']}
-              rows={byClass.map(c => [c.class_name, c.present, c.late, c.absent, c.excused, c.total, rateCell(c.rate)])} />
-          </div>
-        )}
-
-        {/* ─── By Student ─── */}
-        {viewTab === 4 && (
-          <div className="space-y-4">
-            {byStudent.length === 0 ? <Empty /> : (
-              <>
-                {/* Top/bottom performers */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100 ">
-                    <h3 className="mb-3 text-sm font-semibold text-rose-600 flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> At Risk (Lowest Attendance)</h3>
-                    <div className="space-y-2">
-                      {byStudent.slice(0, 5).map((s, i) => (
-                        <div key={s.student_sid} className="flex items-center gap-2">
-                          <span className="text-lg">{['🔴','🟠','🟡','🟡','🟡'][i]}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate text-[#122b59] ">{s.student_name}</p>
-                            <p className="text-xs text-slate-400">{s.class_name} · {s.student_sid}</p>
-                          </div>
-                          <span className="font-bold text-red-600">{s.rate}%</span>
-                        </div>
-                      ))}
-                    </div>
+            {/* Selected Date Detail Inspection */}
+            {selectedDailyDate && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-4 rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50/50 via-white to-blue-50/20 p-6 shadow-sm">
+                <div className="flex items-center justify-between border-b border-blue-100 pb-4">
+                  <div>
+                    <h3 className="text-base font-bold text-[#0a1f44] flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      <span>បញ្ជីវត្តមានសិស្សលម្អិត សម្រាប់ថ្ងៃទី {selectedDailyDate}</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      បង្ហាញវត្តមានសិស្សទាំងអស់ដែលបានកត់ត្រាសម្រាប់ថ្ងៃនេះ
+                    </p>
                   </div>
-                  <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100 ">
-                    <h3 className="mb-3 text-sm font-semibold text-emerald-600 flex items-center gap-1.5"><UserCheck className="h-4 w-4" /> Perfect Attendance (Highest)</h3>
-                    <div className="space-y-2">
-                      {[...byStudent].sort((a, b) => b.rate - a.rate).slice(0, 5).map((s, i) => (
-                        <div key={s.student_sid} className="flex items-center gap-2">
-                          <span className="text-lg">{['🥇','🥈','🥉','⭐','⭐'][i]}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate text-[#122b59] ">{s.student_name}</p>
-                            <p className="text-xs text-slate-400">{s.class_name} · {s.student_sid}</p>
+                  <button
+                    onClick={() => setSelectedDailyDate(null)}
+                    className="rounded-full p-2 text-slate-400 hover:bg-slate-100 transition-colors">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {activeDailyRecords.length === 0 ? (
+                  <div className="py-8 text-center text-xs font-semibold text-slate-400">
+                    ពុំមានបញ្ជីសិស្សលម្អិតក្នុងម៉ាស៊ីនសម្រាប់ថ្ងៃទី {selectedDailyDate} ឡើយ។
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {activeDailyRecords.map((rec: any, i: number) => (
+                      <div
+                        key={rec.id || i}
+                        className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs">
+                        <div className="flex items-center gap-3">
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-xl font-bold text-white text-xs ${
+                            rec.status === 'present' ? 'bg-emerald-600' : 'bg-red-600'
+                          }`}>
+                            {rec.student_name ? rec.student_name[0] : 'S'}
                           </div>
-                          <span className="font-bold text-emerald-600">{s.rate}%</span>
+                          <div>
+                            <h4 className="text-xs font-bold text-[#0a1f44]">{rec.student_name}</h4>
+                            <span className="font-mono text-[11px] font-bold text-[#2269ff]">{rec.student_sid}</span>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <DataTable
-                  headers={['#', 'Student', 'ID', 'Class', 'Present', 'Late', 'Absent', 'Excused', 'Total', 'Rate']}
-                  rows={byStudent.map((s, i) => [i+1, s.student_name, s.student_sid, s.class_name, s.present, s.late, s.absent, s.excused, s.total, rateCell(s.rate)])} />
-              </>
-            )}
-          </div>
-        )}
 
-        {/* ─── Heatmap ─── */}
-        {viewTab === 5 && (
-          <div className="space-y-4">
-            <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100 ">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold text-[#122b59] ">Attendance Heatmap — {year}</h3>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-red-500" /> Low</span>
-                  <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-amber-500" /> Mid</span>
-                  <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-emerald-500" /> High</span>
-                  <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-sm bg-slate-200" /> No data</span>
-                </div>
-              </div>
-
-              {/* Month labels */}
-              <div className="overflow-x-auto">
-                <div className="min-w-[700px]">
-                  <div className="mb-1 flex pl-6 text-xs text-slate-400">
-                    {MONTH_LABELS.map(m => <span key={m} className="flex-1 text-center">{m}</span>)}
-                  </div>
-                  <div className="flex gap-0.5">
-                    {/* Day-of-week labels */}
-                    <div className="flex flex-col gap-0.5 pr-1">
-                      {DAYS.map((d, i) => (
-                        <span key={i} className="h-3 w-4 text-right text-[9px] text-slate-400 leading-3">{i % 2 === 1 ? d : ''}</span>
-                      ))}
-                    </div>
-                    {/* Weeks */}
-                    {heatmapGrid.map((week, wi) => (
-                      <div key={wi} className="flex flex-col gap-0.5">
-                        {week.map((cell, di) => (
-                          <div key={di}
-                            style={{ backgroundColor: cell && cell.rate >= 0 ? heatColor(cell.rate) : '#f3f4f6' }}
-                            className="h-3 w-3 rounded-sm cursor-default transition-transform hover:scale-125"
-                            title={cell ? `${cell.date}: ${cell.rate >= 0 ? cell.rate + '%' : 'No school'}` : ''} />
-                        ))}
+                        <div className="text-right">
+                          <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
+                            rec.status === 'present'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {rec.status === 'present' ? 'បានមក (Present)' : 'មិនបានមក (Absent)'}
+                          </span>
+                          <p className="text-[10px] text-slate-400 font-medium mt-0.5">{rec.scan_method || 'Manual Roll Call'}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Distribution Doughnut */}
-            {heatmap.length > 0 && (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                {[
-                  { label: 'High (≥85%)',  count: heatmap.filter(h => h.rate >= 85).length, color: 'text-emerald-600', dot: 'bg-emerald-500' },
-                  { label: 'Mid (60-84%)', count: heatmap.filter(h => h.rate >= 60 && h.rate < 85).length, color: 'text-amber-600', dot: 'bg-amber-500' },
-                  { label: 'Low (<60%)',   count: heatmap.filter(h => h.rate < 60).length, color: 'text-red-600', dot: 'bg-red-500' },
-                ].map(c => (
-                  <div key={c.label} className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100 text-center">
-                    <div className={`flex items-center justify-center gap-2 mb-2 text-xs font-semibold ${c.color}`}>
-                      <span className={`h-2.5 w-2.5 rounded-full ${c.dot}`} />{c.label}
-                    </div>
-                    <p className={`text-3xl font-bold ${c.color}`}>{c.count}</p>
-                    <p className="text-xs text-slate-400 mt-1">school days</p>
-                  </div>
-                ))}
-              </div>
+                )}
+              </motion.div>
             )}
+
+            {/* Monday to Friday Student Attendance Table */}
+            {renderMondayToFridayTable()}
           </div>
         )}
 
+        {/* ─── TAB 1: Weekly Attendance Report (ប្រចាំសប្តាហ៍) ─── */}
+        {viewTab === 1 && (
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-2xs">
+              <h3 className="text-base font-bold text-[#0a1f44] mb-4">របាយការណ៍វត្តមានប្រចាំសប្តាហ៍ (Weekly Summary)</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500">
+                      <th className="px-6 py-4">សប្តាហ៍ (Week)</th>
+                      <th className="px-6 py-4">វត្តមាន (Present)</th>
+                      <th className="px-6 py-4">មកយឺត (Late)</th>
+                      <th className="px-6 py-4">អវត្តមាន (Absent)</th>
+                      <th className="px-6 py-4">ច្បាប់ (Excused)</th>
+                      <th className="px-6 py-4">ចំនួនសរុប</th>
+                      <th className="px-6 py-4 text-right">អត្រាវត្តមាន (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {(byWeeklyQ.data ?? []).length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-8 text-center text-slate-400">ពុំមានទិន្នន័យប្រចាំសប្តាហ៍ឡើយ។</td>
+                      </tr>
+                    ) : (
+                      (byWeeklyQ.data ?? []).map((row, idx) => (
+                        <tr key={idx} className="hover:bg-blue-50/30">
+                          <td className="px-6 py-4 font-bold text-[#0a1f44]">{row.week}</td>
+                          <td className="px-6 py-4 text-emerald-600 font-semibold">{row.present}</td>
+                          <td className="px-6 py-4 text-amber-600 font-semibold">{row.late}</td>
+                          <td className="px-6 py-4 text-red-600 font-semibold">{row.absent}</td>
+                          <td className="px-6 py-4 text-blue-600 font-semibold">{row.excused}</td>
+                          <td className="px-6 py-4 font-bold">{row.total}</td>
+                          <td className="px-6 py-4 text-right font-extrabold">{rateCell(row.rate)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Monday to Friday Student Attendance Table */}
+            {renderMondayToFridayTable()}
+          </div>
+        )}
+
+        {/* ─── TAB 2: Monthly Attendance Report (ប្រចាំខែ) ─── */}
+        {viewTab === 2 && (
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-2xs">
+              <h3 className="text-base font-bold text-[#0a1f44] mb-4">របាយការណ៍វត្តមានប្រចាំខែ (Monthly Summary)</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500">
+                      <th className="px-6 py-4">ខែ (Month)</th>
+                      <th className="px-6 py-4">វត្តមាន (Present)</th>
+                      <th className="px-6 py-4">មកយឺត (Late)</th>
+                      <th className="px-6 py-4">អវត្តមាន (Absent)</th>
+                      <th className="px-6 py-4">ច្បាប់ (Excused)</th>
+                      <th className="px-6 py-4">ចំនួនសរុប</th>
+                      <th className="px-6 py-4 text-right">អត្រាវត្តមាន (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm">
+                    {(byMonthlyQ.data ?? []).length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-8 text-center text-slate-400">ពុំមានទិន្នន័យប្រចាំខែឡើយ។</td>
+                      </tr>
+                    ) : (
+                      (byMonthlyQ.data ?? []).map((row, idx) => (
+                        <tr key={idx} className="hover:bg-blue-50/30">
+                          <td className="px-6 py-4 font-bold text-[#0a1f44]">{row.month}</td>
+                          <td className="px-6 py-4 text-emerald-600 font-semibold">{row.present}</td>
+                          <td className="px-6 py-4 text-amber-600 font-semibold">{row.late}</td>
+                          <td className="px-6 py-4 text-red-600 font-semibold">{row.absent}</td>
+                          <td className="px-6 py-4 text-blue-600 font-semibold">{row.excused}</td>
+                          <td className="px-6 py-4 font-bold">{row.total}</td>
+                          <td className="px-6 py-4 text-right font-extrabold">{rateCell(row.rate)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 3: Individual Student Attendance Report (សិស្សម្នាក់ៗ ប្រចាំ week, month) ─── */}
+        {viewTab === 3 && (
+          <div className="space-y-6">
+            {/* Student Search & Quick Selection Toolbar */}
+            <div className="flex flex-col gap-4 rounded-2xl border border-blue-100 bg-white p-5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-1 flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[240px] max-w-md">
+                  <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={studentSearchTerm}
+                    onChange={(e) => setStudentSearchTerm(e.target.value)}
+                    placeholder="ស្វែងរកឈ្មោះសិស្ស ឬ អត្តលេខ (ID)..."
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-4 py-2 text-xs font-bold text-slate-800 placeholder-slate-400 focus:border-[#2269ff] focus:bg-white focus:outline-none"
+                  />
+                  {studentSearchTerm && (
+                    <button onClick={() => setStudentSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={classFilter}
+                  onChange={(e) => setClassFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-xs font-bold text-slate-700 focus:border-[#2269ff] focus:outline-none">
+                  <option value="">គ្រប់មុខវិជ្ជាទាំងអស់</option>
+                  {dbSubjectOptions.map((s: string) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedStudent && (
+                <Button
+                  onClick={printSingleStudentReport}
+                  className="rounded-xl bg-[#2269ff] hover:bg-blue-600 text-white font-semibold text-xs gap-1.5 shadow-sm">
+                  <Printer className="h-4 w-4" />
+                  <span>បោះពុម្ពរបាយការណ៍សិស្ស</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Selected Student Detailed Inspection Card */}
+            <AnimatePresence>
+              {selectedStudent ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 15 }}
+                  className="space-y-6">
+                  
+                  {/* Selected Student Profile Banner */}
+                  <div className="flex flex-col justify-between gap-4 rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50/60 via-white to-blue-50/30 p-6 shadow-sm sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#2269ff] text-2xl font-extrabold text-white shadow-md">
+                        {selectedStudent.student_name[0]}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-xl font-bold text-[#0a1f44]">{selectedStudent.student_name}</h2>
+                          <span className="rounded-full bg-blue-100 px-3 py-0.5 text-xs font-extrabold text-[#2269ff]">
+                            {selectedStudent.class_name}
+                          </span>
+                        </div>
+                        <p className="font-mono text-xs font-bold text-[#2269ff] mt-0.5">
+                          ID: {selectedStudent.student_sid}
+                        </p>
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          របាយការណ៍វត្តមានលម្អិតប្រចាំសប្តាហ៍ និងប្រចាំខែ
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-slate-400">អត្រាវត្តមានសរុប</span>
+                        <div className="text-3xl font-extrabold text-[#2269ff]">{selectedStudent.rate}%</div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedStudent(null)}
+                        className="rounded-full p-2 text-slate-400 hover:bg-slate-100 transition-colors"
+                        title="បិទការមើលលម្អិត">
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Timeframe Switcher: Weekly vs Monthly */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 rounded-xl border border-blue-100 bg-white p-1 shadow-2xs">
+                      <button
+                        onClick={() => setStudentTimeframe('weekly')}
+                        className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                          studentTimeframe === 'weekly' ? 'bg-[#2269ff] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
+                        }`}>
+                        របាយការណ៍ប្រចាំសប្តាហ៍ (Weekly)
+                      </button>
+                      <button
+                        onClick={() => setStudentTimeframe('monthly')}
+                        className={`rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                          studentTimeframe === 'monthly' ? 'bg-[#2269ff] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50'
+                        }`}>
+                        របាយការណ៍ប្រចាំខែ (Monthly)
+                      </button>
+                    </div>
+
+                    <span className="text-xs font-bold text-slate-500">
+                      បង្ហាញទិន្នន័យ {studentTimeframe === 'weekly' ? 'ប្រចាំសប្តាហ៍' : 'ប្រចាំខែ'} សម្រាប់ {selectedStudent.student_name}
+                    </span>
+                  </div>
+
+                  {/* Weekly or Monthly Breakdown Table */}
+                  <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xs">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500">
+                            <th className="px-6 py-4">កំឡុងពេល ({studentTimeframe === 'weekly' ? 'សប្តាហ៍' : 'ខែ'})</th>
+                            <th className="px-6 py-4">វត្តមាន (Present)</th>
+                            <th className="px-6 py-4">មកយឺត (Late)</th>
+                            <th className="px-6 py-4">អវត្តមាន (Absent)</th>
+                            <th className="px-6 py-4">ច្បាប់ (Excused)</th>
+                            <th className="px-6 py-4">ចំនួនថ្ងៃសរុប</th>
+                            <th className="px-6 py-4 text-right">អត្រាវត្តមាន (%)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-sm">
+                          {(studentTimeframe === 'weekly' ? studentBreakdown.weekly : studentBreakdown.monthly).map((row, idx) => (
+                            <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                              <td className="px-6 py-4 font-bold text-[#0a1f44] flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-[#2269ff]" />
+                                <span>{row.period}</span>
+                              </td>
+                              <td className="px-6 py-4 font-semibold text-emerald-600">{row.present} ថ្ងៃ</td>
+                              <td className="px-6 py-4 font-semibold text-amber-600">{row.late} ថ្ងៃ</td>
+                              <td className="px-6 py-4 font-semibold text-red-600">{row.absent} ថ្ងៃ</td>
+                              <td className="px-6 py-4 font-semibold text-blue-600">{row.excused} ថ្ងៃ</td>
+                              <td className="px-6 py-4 font-bold text-slate-700">{row.total} ថ្ងៃ</td>
+                              <td className="px-6 py-4 text-right font-extrabold">
+                                {rateCell(row.rate)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+
+            {/* List of All Students with Quick Select */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-[#0a1f44]">
+                  បញ្ជីសិស្សទាំងអស់ ({filteredStudents.length})
+                </h3>
+                <span className="text-xs text-slate-500 font-medium">ចុចលើឈ្មោះសិស្សដើម្បីមើលរបាយការណ៍ប្រចាំសប្តាហ៍ និងប្រចាំខែ</span>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-2xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/70 text-xs font-bold text-slate-500">
+                        <th className="px-6 py-4">#</th>
+                        <th className="px-6 py-4">ឈ្មោះសិស្ស</th>
+                        <th className="px-6 py-4">អត្តលេខ (ID)</th>
+                        <th className="px-6 py-4">មុខវិជ្ជា</th>
+                        <th className="px-6 py-4">វត្តមាន</th>
+                        <th className="px-6 py-4">មកយឺត</th>
+                        <th className="px-6 py-4">អវត្តមាន</th>
+                        <th className="px-6 py-4">អត្រាវត្តមាន</th>
+                        <th className="px-6 py-4 text-right">សកម្មភាព</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {filteredStudents.map((st, i) => (
+                        <tr
+                          key={st.student_sid}
+                          onClick={() => setSelectedStudent(st)}
+                          className={`hover:bg-blue-50/40 cursor-pointer transition-colors ${
+                            selectedStudent?.student_sid === st.student_sid ? 'bg-blue-50/60 font-bold' : ''
+                          }`}>
+                          <td className="px-6 py-4 text-xs font-bold text-slate-400">{i + 1}</td>
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-[#0a1f44] flex items-center gap-2">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-[#2269ff] text-xs font-extrabold">
+                                {st.student_name[0]}
+                              </div>
+                              <span>{st.student_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-mono text-xs font-bold text-[#2269ff]">{st.student_sid}</td>
+                          <td className="px-6 py-4 text-xs font-semibold text-slate-600">{st.class_name}</td>
+                          <td className="px-6 py-4 text-emerald-600 font-semibold">{st.present}</td>
+                          <td className="px-6 py-4 text-amber-600 font-semibold">{st.late}</td>
+                          <td className="px-6 py-4 text-red-600 font-semibold">{st.absent}</td>
+                          <td className="px-6 py-4 font-bold">{rateCell(st.rate)}</td>
+                          <td className="px-6 py-4 text-right">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => { e.stopPropagation(); setSelectedStudent(st); }}
+                              className="rounded-lg text-xs font-bold text-[#2269ff] hover:bg-blue-100 gap-1">
+                              <span>មើលរបាយការណ៍ (Week/Month)</span>
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 4: Heatmap Calendar Grid ─── */}
+        {viewTab === 4 && (
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-2xs">
+              <h3 className="text-base font-bold text-[#0a1f44] mb-2">Heatmap វត្តមានសិស្សសរុប (Attendance Heatmap)</h3>
+              <p className="text-xs text-slate-500 mb-6">កម្រិតព័ត៌មានអត្រាវត្តមានតាមកាលបរិច្ឆេទ</p>
+              
+              <div className="grid grid-cols-7 gap-2 sm:grid-cols-10 md:grid-cols-14">
+                {dailyRows.map((d) => (
+                  <div
+                    key={d.date}
+                    title={`${d.date}: ${d.rate}% (${d.present} វត្តមាន)`}
+                    className="flex flex-col items-center justify-center p-2 rounded-xl border border-slate-100 cursor-pointer transition-transform hover:scale-105"
+                    style={{ backgroundColor: heatColor(d.rate) }}>
+                    <span className="text-[10px] font-black text-white">{d.date.split('-').slice(1).join('/')}</span>
+                    <span className="text-[11px] font-extrabold text-white">{d.rate}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
-  );
-}
-
-// ─── Reusable sub-components ──────────────────────────
-function Empty() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
-      <BarChart2 className="h-8 w-8 opacity-30" />
-      <p className="text-xs">No data for this filter range</p>
-    </div>
-  );
-}
-
-function DataTable({ headers, rows }: { headers: string[]; rows: (string | number | React.ReactNode)[][] }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm ">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="border-b border-slate-100 bg-slate-50 ">
-            <tr>
-              {headers.map(h => (
-                <th key={h} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50 ">
-            {rows.length === 0 ? (
-              <tr><td colSpan={headers.length} className="px-5 py-10 text-center text-slate-400">No data</td></tr>
-            ) : rows.map((row, i) => (
-              <tr key={i} className="hover:bg-slate-50 :bg-[#1c3a73]/40">
-                {row.map((cell, j) => (
-                  <td key={j} className="px-5 py-3 text-[#1c3a73] ">{cell}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
   );
 }

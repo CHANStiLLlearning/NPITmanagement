@@ -31,12 +31,18 @@ interface AnalyticsOverview {
   grade_distribution: Record<string, number>;
 }
 
-const CLASSES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
 const TERMS = ['Term 1', 'Term 2', 'Term 3', 'Semester 1', 'Semester 2'];
 
 export default function Analytics() {
   const [selClass, setSelClass] = useState('');
   const [selTerm, setSelTerm]   = useState('Term 1');
+
+  const { data: dbSubjects = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['subjects'],
+    queryFn: async () => (await axios.get('/academic/subjects')).data,
+  });
+
+  const subjectOptions = dbSubjects.map(s => s.name);
 
   const { data, isLoading, refetch } = useQuery<AnalyticsOverview>({
     queryKey: ['analytics-overview', selClass, selTerm],
@@ -126,12 +132,12 @@ export default function Analytics() {
 
         {/* Filter Bar */}
         <div className="flex flex-wrap gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm ">
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="text-xs font-medium text-slate-500">Filter by Class</label>
+          <div className="flex flex-col gap-1 min-w-[180px]">
+            <label className="text-xs font-medium text-slate-500">Filter by មុខវិជ្ជា (Subject)</label>
             <select value={selClass} onChange={e => setSelClass(e.target.value)}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-[#2269ff] ">
-              <option value="">All Classes</option>
-              {CLASSES.map(c => <option key={c}>{c}</option>)}
+              <option value="">All Subjects</option>
+              {subjectOptions.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1 min-w-[160px]">

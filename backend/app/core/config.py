@@ -1,7 +1,11 @@
 import os
 from pydantic_settings import BaseSettings
 
-raw_db_url = os.getenv("DATABASE_URL", "sqlite:///./school.db")
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+default_db_path = os.path.join(base_dir, "school.db").replace("\\", "/")
+default_sqlite_url = f"sqlite:///{default_db_path}"
+
+raw_db_url = os.getenv("DATABASE_URL", default_sqlite_url)
 if raw_db_url.startswith("postgres://"):
     raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
 

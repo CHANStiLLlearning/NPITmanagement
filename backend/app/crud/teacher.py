@@ -58,7 +58,15 @@ def get_teachers(
         query = query.filter(Teacher.department == department)
     if status:
         query = query.filter(Teacher.status == status)
-    return query.offset(skip).limit(limit).all()
+    teachers = query.offset(skip).limit(limit).all()
+    updated = False
+    for t in teachers:
+        if not t.qr_code and t.teacher_id:
+            t.qr_code = generate_qr_code(t.teacher_id)
+            updated = True
+    if updated:
+        db.commit()
+    return teachers
 
 
 def count_teachers(
@@ -99,6 +107,24 @@ def update_teacher(db: Session, db_teacher: Teacher, teacher: TeacherUpdate) -> 
 
 
 def delete_teacher(db: Session, db_teacher: Teacher) -> Teacher:
+    from app.models.user import User
+    from app.models.academic import TeacherAssignment
+    from app.models.teaching_report import TeachingReport
+    from sqlalchemy import func
+
+    email = db_teacher.email.strip().lower() if db_teacher.email else None
+
+    if email:
+        # Delete linked user account if exists
+        u = db.query(User).filter(func.lower(User.email) == email).first()
+        if u:
+            db.delete(u)
+
+        # Delete teacher assignments and teaching reports
+        db.query(TeacherAssignment).filter(func.lower(TeacherAssignment.teacher_email) == email).delete(synchronize_session=False)
+        db.query(TeachingReport).filter(func.lower(TeachingReport.teacher_email) == email).delete(synchronize_session=False)
+
     db.delete(db_teacher)
     db.commit()
     return db_teacher
+

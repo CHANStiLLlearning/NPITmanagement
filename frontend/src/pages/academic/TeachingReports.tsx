@@ -68,11 +68,7 @@ const TEACHING_METHODS = [
   'Direct Instruction', 'Blended Learning', 'Socratic Method', 'Other',
 ];
 
-const SUBJECTS = [
-  'Mathematics', 'Science', 'English', 'History', 'Geography',
-  'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Physical Education',
-  'Arts', 'Music', 'Languages', 'Economics',
-];
+
 
 // ─── Auto-save hook ───────────────────────────────────
 function useAutoSave(
@@ -124,8 +120,7 @@ function printReport(report: TeachingReport) {
     <div class="meta">${report.teacher_name} · ${report.class_name || ''} · ${report.subject || ''} · ${report.report_date}</div>
     <div class="grid">
       <div class="section"><div class="label">Date</div><div class="value">${report.report_date}</div></div>
-      <div class="section"><div class="label">Class</div><div class="value">${report.class_name || '—'}</div></div>
-      <div class="section"><div class="label">Subject</div><div class="value">${report.subject || '—'}</div></div>
+      <div class="section"><div class="label">មុខវិជ្ជា (Subject)</div><div class="value">${report.subject || report.class_name || '—'}</div></div>
       <div class="section"><div class="label">Teaching Method</div><div class="value">${report.teaching_method || '—'}</div></div>
     </div>
     ${[
@@ -164,7 +159,12 @@ export default function TeachingReports() {
   const [reviewNote, setReviewNote]   = useState('');
   const fileInputRef                  = useRef<HTMLInputElement>(null);
 
-  // Fetch reports
+  const { data: dbSubjects = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['subjects'],
+    queryFn: async () => (await axios.get('/academic/subjects')).data,
+  });
+
+  const subjectOptions = dbSubjects.length > 0 ? dbSubjects.map(s => s.name) : ['General'];
   const { data: reports = [], refetch } = useQuery<TeachingReport[]>({
     queryKey: ['teaching-reports', search, statusFilter],
     queryFn: async () => {
@@ -301,8 +301,7 @@ export default function TeachingReports() {
       icon: School,
       fields: [
         { key: 'report_date', label: 'Date *', type: 'date', full: false },
-        { key: 'class_name', label: 'Class', type: 'select', options: ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'], full: false },
-        { key: 'subject', label: 'Subject', type: 'select', options: SUBJECTS, full: false },
+        { key: 'subject', label: 'មុខវិជ្ជា (Subject) *', type: 'select', options: subjectOptions, full: false },
         { key: 'lesson_title', label: 'Lesson Title *', type: 'text', full: true },
       ],
     },
@@ -552,11 +551,10 @@ export default function TeachingReports() {
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
-                  ['Teacher',  viewReport.teacher_name],
-                  ['Date',     viewReport.report_date],
-                  ['Class',    viewReport.class_name],
-                  ['Subject',  viewReport.subject],
-                  ['Method',   viewReport.teaching_method],
+                  ['Teacher',              viewReport.teacher_name],
+                  ['Date',                 viewReport.report_date],
+                  ['មុខវិជ្ជា (Subject)',  viewReport.subject || viewReport.class_name],
+                  ['Method',               viewReport.teaching_method],
                 ].map(([l, v]) => (
                   <div key={l} className="rounded-xl bg-slate-50 p-3 ">
                     <p className="text-xs text-slate-400">{l}</p>
@@ -614,7 +612,7 @@ export default function TeachingReports() {
               <div className="space-y-4">
                 <div className="rounded-xl bg-slate-50 p-4 ">
                   <p className="font-semibold text-[#122b59] ">{reviewTarget.lesson_title || 'Untitled'}</p>
-                  <p className="text-sm text-slate-500">{reviewTarget.teacher_name} · {reviewTarget.class_name} · {reviewTarget.report_date}</p>
+                  <p className="text-sm text-slate-500">{reviewTarget.teacher_name} · {reviewTarget.subject || reviewTarget.class_name} · {reviewTarget.report_date}</p>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-slate-600">Review Note (optional)</label>
@@ -666,7 +664,7 @@ function ReportTable({ reports, onEdit, onView, onDelete, onPrint, isReviewer, o
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-100 bg-slate-50 ">
             <tr>
-              {['Report', 'Teacher', 'Class / Subject', 'Date', 'Status', 'Actions'].map(h => (
+              {['Report', 'Teacher', 'មុខវិជ្ជា (Subject)', 'Date', 'Status', 'Actions'].map(h => (
                 <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{h}</th>
               ))}
             </tr>
@@ -687,8 +685,7 @@ function ReportTable({ reports, onEdit, onView, onDelete, onPrint, isReviewer, o
                   </td>
                   <td className="px-5 py-3.5 text-slate-600 ">{r.teacher_name}</td>
                   <td className="px-5 py-3.5">
-                    <p className="text-[#122b59] ">{r.class_name || '—'}</p>
-                    <p className="text-xs text-slate-400">{r.subject || '—'}</p>
+                    <p className="text-[#122b59] ">{r.subject || r.class_name || '—'}</p>
                   </td>
                   <td className="px-5 py-3.5 text-slate-600 whitespace-nowrap">{r.report_date}</td>
                   <td className="px-5 py-3.5">

@@ -20,23 +20,70 @@ from app.crud.audit_log import log_action
 router = APIRouter()
 
 
+from datetime import date, datetime, timedelta
+
 @router.get("/summary")
 def get_school_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
     total_students = db.query(Student).filter(Student.is_active == True).count()
-    total_teachers = db.query(Teacher).filter(Teacher.status == "Active").count()
+    total_teachers = db.query(Teacher).filter(func.lower(Teacher.status) == "active").count()
+    if total_teachers == 0:
+        total_teachers = db.query(Teacher).count()
+        
     total_att      = db.query(AttendanceRecord).count()
     present_att    = db.query(AttendanceRecord).filter(AttendanceRecord.status.in_(["present", "late"])).count()
-    att_rate       = round((present_att / total_att * 100), 1) if total_att > 0 else 95.0
+    att_rate       = round((present_att / total_att * 100), 1) if total_att > 0 else 0.0
 
     total_reports  = db.query(TeachingReport).count()
     approved_reports = db.query(TeachingReport).filter(TeachingReport.status == "approved").count()
 
     total_cards    = db.query(ReportCard).count()
     avg_gpa_res    = db.query(func.avg(ReportCard.gpa)).scalar()
-    avg_gpa        = round(float(avg_gpa_res), 2) if avg_gpa_res else 3.45
+    avg_gpa        = round(float(avg_gpa_res), 2) if avg_gpa_res else 0.0
+
+    # Real class breakdown from database
+    class_rows = db.query(Student.class_name, func.count(Student.id)).filter(Student.is_active == True).group_by(Student.class_name).all()
+    class_distribution = {c[0] or "Unassigned": c[1] for c in class_rows}
+
+    # Weekly attendance trends (last 5 days)
+    today = date.today()
+    weekly_attendance = []
+    days_map = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    for i in range(4, -1, -1):
+        d = today - timedelta(days=i)
+        p = db.query(AttendanceRecord).filter(AttendanceRecord.date == d, AttendanceRecord.status.in_(["present", "late"])).count()
+        a = db.query(AttendanceRecord).filter(AttendanceRecord.date == d, AttendanceRecord.status == "absent").count()
+        day_name = days_map[d.weekday()]
+        weekly_attendance.append({
+            "day": f"{day_name} ({d.strftime('%d/%m')})",
+            "present": p,
+            "absent": a
+        })
+
+    # Score trend by term from real ReportCard data
+    term_rows = db.query(
+        ReportCard.term,
+        func.avg(ReportCard.weighted_total).label("avg_score"),
+        func.count(ReportCard.id).label("count"),
+    ).group_by(ReportCard.term).order_by(ReportCard.term).all()
+
+    TERM_ORDER = ["Term 1", "Term 2", "Semester 1", "Term 3", "Term 4", "Semester 2", "Final"]
+    score_trend = []
+    if term_rows:
+        # Sort by common term order if possible
+        def term_sort_key(r):
+            try: return TERM_ORDER.index(r.term)
+            except ValueError: return 99
+        sorted_rows = sorted(term_rows, key=term_sort_key)
+        for r in sorted_rows:
+            if r.avg_score is not None:
+                score_trend.append({
+                    "term": r.term or "Unknown",
+                    "avg_score": round(float(r.avg_score), 1),
+                    "count": r.count,
+                })
 
     return {
         "total_students": total_students,
@@ -47,8 +94,12 @@ def get_school_summary(
         "approved_teaching_reports": approved_reports,
         "report_cards_count": total_cards,
         "average_gpa": avg_gpa,
+        "class_distribution": class_distribution,
+        "weekly_attendance": weekly_attendance,
+        "score_trend": score_trend,
         "generated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
     }
+
 
 
 @router.get("/export/{report_type}/csv")

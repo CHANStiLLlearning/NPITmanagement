@@ -73,6 +73,43 @@ def update_user(db: Session, db_user: User, user: UserUpdate):
     return db_user
 
 def delete_user(db: Session, db_user: User):
+    from app.models.student import Student
+    from app.models.teacher import Teacher
+    from app.models.attendance import AttendanceRecord
+    from app.models.score import StudentScore, ReportCard
+    from app.models.academic import TeacherAssignment
+    from app.models.teaching_report import TeachingReport
+    from app.models.audit_log import AuditLog
+    from app.models.session import UserSession
+
+    user_id = db_user.id
+    email = db_user.email.strip().lower() if db_user.email else None
+
+    # Always remove active login sessions first
+    db.query(UserSession).filter(UserSession.user_id == user_id).delete(synchronize_session=False)
+
+    if email:
+        # Delete linked Student record and its dependent records
+        st = db.query(Student).filter(func.lower(Student.email) == email).first()
+        if st:
+            db.query(AttendanceRecord).filter(AttendanceRecord.student_sid == st.student_id).delete(synchronize_session=False)
+            db.query(StudentScore).filter(StudentScore.student_sid == st.student_id).delete(synchronize_session=False)
+            db.query(ReportCard).filter(ReportCard.student_sid == st.student_id).delete(synchronize_session=False)
+            db.delete(st)
+
+        # Delete linked Teacher record and its dependent records
+        tch = db.query(Teacher).filter(func.lower(Teacher.email) == email).first()
+        if tch:
+            db.query(TeacherAssignment).filter(func.lower(TeacherAssignment.teacher_email) == email).delete(synchronize_session=False)
+            db.query(TeachingReport).filter(func.lower(TeachingReport.teacher_email) == email).delete(synchronize_session=False)
+            db.delete(tch)
+
+        # Clean up any leftover records linked by email
+        db.query(TeacherAssignment).filter(func.lower(TeacherAssignment.teacher_email) == email).delete(synchronize_session=False)
+        db.query(TeachingReport).filter(func.lower(TeachingReport.teacher_email) == email).delete(synchronize_session=False)
+        db.query(AuditLog).filter(func.lower(AuditLog.user_email) == email).delete(synchronize_session=False)
+
     db.delete(db_user)
     db.commit()
     return db_user
+

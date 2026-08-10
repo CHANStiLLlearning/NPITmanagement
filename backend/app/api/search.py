@@ -113,7 +113,7 @@ def global_search(
             "id": a.id,
             "title": f"{a.student_name} ({a.status.value.upper()})",
             "subtitle": f"Date: {a.date} · Class: {a.class_name or 'N/A'} · Time: {a.time_in or 'N/A'}",
-            "link": "/qr-attendance",
+            "link": "/attendance",
             "type": "attendance",
         })
 

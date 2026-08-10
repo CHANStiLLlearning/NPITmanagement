@@ -30,78 +30,8 @@ ChartJS.register(
   PointElement, ArcElement, Title, Tooltip, Legend, Filler
 );
 
-// --- Softened Metric Font Weights ---
-const stats = [
-  {
-    id: 1, label: "អត្រាវត្តមានសិស្សប្រចាំថ្ងៃ", sublabel: "Today's Attendance Rate", value: "87.0%", subtitle: "២៦១ នាក់ នៃសិស្ស ៣០០ នាក់",
-    icon: UserCheck, badgeColor: "bg-blue-50 text-[#2269ff] border-blue-200", barColor: "bg-[#2269ff]", percent: 87,
-    change: "+2.4% ប្រៀបធៀបម្សិលមិញ",
-  },
-  {
-    id: 2, label: "ចំនួនសិស្សសរុប", sublabel: "Total Enrolled Students", value: "300", subtitle: "ឆ្នាំសិក្សា ២០២៥ - ២០២៦",
-    icon: Users, badgeColor: "bg-blue-50 text-[#2269ff] border-blue-200", barColor: "bg-[#2269ff]", percent: 100,
-    change: "+12 ចូលរៀនថ្មី",
-  },
-  {
-    id: 3, label: "លោកគ្រូ-អ្នកគ្រូ", sublabel: "Active Faculty Staff", value: "25", subtitle: "២២ នាក់ កំពុងបង្រៀនថ្ងៃនេះ",
-    icon: GraduationCap, badgeColor: "bg-amber-50 text-[#ca8a04] border-amber-200", barColor: "bg-[#eab308]", percent: 88,
-    change: "បុគ្គលិកពេញលេញ",
-  },
-  {
-    id: 4, label: "ពិន្ទុមធ្យមភាគ (GPA)", sublabel: "Institutional Average GPA", value: "3.45", subtitle: "គិតលើពិន្ទុអតិបរមា ៤.០០",
-    icon: Award, badgeColor: "bg-red-50 text-[#ec171c] border-red-200", barColor: "bg-[#ec171c]", percent: 86,
-    change: "+0.15 ឆមាសនេះ",
-  },
-];
 
-// NPIT Chart Datasets
-const attendanceData = {
-  labels: ['ច័ន្ទ (Mon)', 'អង្គារ (Tue)', 'ពុធ (Wed)', 'ព្រហស្បតិ៍ (Thu)', 'សុក្រ (Fri)'],
-  datasets: [
-    {
-      label: 'សិស្សវត្តមាន (Present)',
-      data: [265, 250, 280, 260, 261],
-      backgroundColor: '#2269ff',
-      borderRadius: 6,
-      barThickness: 28,
-    },
-    {
-      label: 'សិស្សអវត្តមាន (Absent)',
-      data: [35, 50, 20, 40, 39],
-      backgroundColor: '#ec171c',
-      borderRadius: 6,
-      barThickness: 28,
-    },
-  ],
-};
 
-const departmentData = {
-  labels: ['មេកានិច (Mechanical)', 'អគ្គិសនី (Electrical)', 'សំណង់ (Civil)', 'វិទ្យាសាស្ត្រកុំព្យូទ័រ (CS)', 'អេឡិចត្រូនិក'],
-  datasets: [{
-    data: [30, 25, 20, 15, 10],
-    backgroundColor: ['#2269ff', '#ec171c', '#eab308', '#2563eb', '#991b1b'],
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  }],
-};
-
-const scoreProgressData = {
-  labels: ['ឆមាសទី ១', 'ឆមាសទី ២', 'ប្រឡងពាក់កណ្តាល', 'ឆមាសទី ៣', 'ប្រឡងបញ្ចប់'],
-  datasets: [
-    {
-      label: 'ពិន្ទុមធ្យមភាគ %',
-      data: [72, 75, 78, 81, 85],
-      borderColor: '#2269ff',
-      backgroundColor: 'rgba(30, 64, 175, 0.05)',
-      tension: 0.3,
-      fill: true,
-      pointBackgroundColor: '#eab308',
-      pointBorderColor: '#2269ff',
-      pointBorderWidth: 2,
-      pointRadius: 6,
-    },
-  ],
-};
 
 interface SystemLogOut {
   id: number;
@@ -168,7 +98,10 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const now = new Date();
-  const dateStr = now.toLocaleDateString('km-KH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  
+  const formattedUser = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email || 'User';
+  const roleTitle = user?.role === 'super_admin' ? 'Super Admin' : user?.role ? user.role.toUpperCase() : '';
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   const { data: rawSystemLogs = [] } = useQuery<SystemLogOut[]>({
     queryKey: ['system-logs-recent'],
@@ -196,7 +129,7 @@ export default function Dashboard() {
       badgeColor: "bg-blue-50 text-[#2269ff] border-blue-200",
       barColor: "bg-[#2269ff]",
       percent: summary ? Math.round(summary.attendance_rate) : 0,
-      change: "ទិន្នន័យជាក់ស្តែង",
+      change: "ទិន្នន័យជាក់ស្តែង (Real DB)",
     },
     {
       id: 2,
@@ -224,17 +157,84 @@ export default function Dashboard() {
     },
     {
       id: 4,
-      label: "ពិន្ទុមធ្យមភាគ (GPA)",
-      sublabel: "Institutional Average GPA",
-      value: summary ? `${summary.average_gpa}` : "0.00",
-      subtitle: "គិតលើពិន្ទុអតិបរមា ៤.០០",
-      icon: Award,
-      badgeColor: "bg-red-50 text-[#ec171c] border-red-200",
-      barColor: "bg-[#ec171c]",
-      percent: summary ? Math.round((summary.average_gpa / 4.0) * 100) : 0,
-      change: "មធ្យមភាគសរុប",
+      label: "របាយការណ៍បង្រៀន",
+      sublabel: "Teaching Reports",
+      value: summary ? `${summary.teaching_reports_count}` : "0",
+      subtitle: summary ? `បានអនុម័ត ${summary.approved_teaching_reports} របាយការណ៍` : "របាយការណ៍សរុប",
+      icon: FileText,
+      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      barColor: "bg-emerald-500",
+      percent: summary && summary.teaching_reports_count > 0 ? Math.round((summary.approved_teaching_reports / summary.teaching_reports_count) * 100) : 0,
+      change: "របាយការណ៍បង្រៀន DB",
     },
   ];
+
+  // Dynamic Weekly Attendance Chart Data from DB
+  const dynamicAttendanceData = {
+    labels: summary?.weekly_attendance && summary.weekly_attendance.length > 0
+      ? summary.weekly_attendance.map((w: any) => w.day)
+      : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    datasets: [
+      {
+        label: 'សិស្សវត្តមាន (Present)',
+        data: summary?.weekly_attendance && summary.weekly_attendance.length > 0
+          ? summary.weekly_attendance.map((w: any) => w.present)
+          : [0, 0, 0, 0, 0],
+        backgroundColor: '#2269ff',
+        borderRadius: 6,
+        barThickness: 28,
+      },
+      {
+        label: 'សិស្សអវត្តមាន (Absent)',
+        data: summary?.weekly_attendance && summary.weekly_attendance.length > 0
+          ? summary.weekly_attendance.map((w: any) => w.absent)
+          : [0, 0, 0, 0, 0],
+        backgroundColor: '#ec171c',
+        borderRadius: 6,
+        barThickness: 28,
+      },
+    ],
+  };
+
+  const classDistKeys = summary?.class_distribution ? Object.keys(summary.class_distribution) : [];
+  const classDistValues = summary?.class_distribution ? Object.values(summary.class_distribution) : [];
+  const dynamicDepartmentData = {
+    labels: classDistKeys.length > 0 ? classDistKeys : ['មេកានិច', 'អគ្គិសនី', 'កុំព្យូទ័រ'],
+    datasets: [{
+      data: classDistValues.length > 0 ? classDistValues : [1, 1, 1],
+      backgroundColor: ['#2269ff', '#ec171c', '#eab308', '#2563eb', '#991b1b', '#10b981', '#8b5cf6'],
+      borderWidth: 2,
+      borderColor: '#ffffff',
+    }],
+  };
+
+  // Dynamic Academic Score Trend - Real data from DB report cards
+  const scoreTrendItems = summary?.score_trend && summary.score_trend.length > 0
+    ? summary.score_trend
+    : null;
+
+  const scoreProgressData = {
+    labels: scoreTrendItems
+      ? scoreTrendItems.map((t: any) => t.term)
+      : ['ឆមាសទី ១', 'ឆមាសទី ២', 'ឆមាសទី ៣'],
+    datasets: [
+      {
+        label: 'ពិន្ទុមធ្យមភាគ %',
+        data: scoreTrendItems
+          ? scoreTrendItems.map((t: any) => t.avg_score)
+          : [0, 0, 0],
+        borderColor: '#2269ff',
+        backgroundColor: 'rgba(30, 64, 175, 0.05)',
+        tension: 0.3,
+        fill: true,
+        pointBackgroundColor: '#eab308',
+        pointBorderColor: '#2269ff',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+      },
+    ],
+  };
+
 
   const displayLogs = rawSystemLogs.length > 0
     ? rawSystemLogs.map((l) => {
@@ -255,9 +255,8 @@ export default function Dashboard() {
   if (user?.role === 'student') {
     const studentStats = [
       { label: 'អត្រាវត្តមានរបស់ខ្ញុំ', sublabel: 'My Attendance Rate', value: '96%', subtitle: 'វត្តមាន ៤៨ ថ្ងៃ នៃ ៥០ ថ្ងៃ', icon: UserCheck, badgeColor: 'bg-emerald-50 text-emerald-600 border-emerald-200', barColor: 'bg-emerald-500', percent: 96 },
-      { label: 'ពិន្ទុមធ្យមភាគ (GPA)', sublabel: 'My Current GPA', value: '3.68', subtitle: 'និទ្ទេស A (ឆមាសទី ១)', icon: Award, badgeColor: 'bg-blue-50 text-[#2269ff] border-blue-200', barColor: 'bg-[#2269ff]', percent: 92 },
       { label: 'ថ្នាក់រៀនបច្ចុប្បន្ន', sublabel: 'Enrolled Class', value: '10A', subtitle: 'ដេប៉ាតឺម៉ង់ មេកានិច', icon: GraduationCap, badgeColor: 'bg-amber-50 text-amber-600 border-amber-200', barColor: 'bg-amber-500', percent: 100 },
-      { label: 'ម៉ោងរៀនថ្ងៃនេះ', sublabel: "Today's Schedule", value: '3 មុខ', subtitle: 'ម៉ោង 08:00 - 15:30', icon: Clock, badgeColor: 'bg-red-50 text-[#ec171c] border-red-200', barColor: 'bg-[#ec171c]', percent: 75 },
+      { label: 'ម៉ោងរៀនថ្ងៃនេះ', sublabel: "Today's Schedule", value: '3 មុខ', subtitle: 'ម៉ោង 08:00 - 15:30', icon: Clock, badgeColor: 'bg-[#2269ff] text-[#2269ff] border-blue-200', barColor: 'bg-[#2269ff]', percent: 75 },
     ];
 
     const todaySchedule = [
@@ -294,20 +293,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/qr-attendance')}
-                className="flex items-center gap-2 rounded-xl bg-[#2269ff] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 transition-all">
-                <QrCode className="h-4.5 w-4.5" />
-                <span>ស្កេន QR វត្តមានខ្ញុំ</span>
-              </button>
-              <button
-                onClick={() => navigate('/scores')}
-                className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/60 px-5 py-2.5 text-sm font-semibold text-[#2269ff] hover:bg-blue-100 transition-all">
-                <Award className="h-4.5 w-4.5" />
-                <span>មើលពិន្ទុទាំងអស់</span>
-              </button>
-            </div>
+
           </div>
 
           {/* Student Personal Metric Cards */}
@@ -372,9 +358,6 @@ export default function Dashboard() {
                   <Award className="h-5 w-5 text-[#ec171c]" />
                   <h2 className="text-base sm:text-lg font-bold text-[#0a1f44] tracking-tight">ពិន្ទុទទួលបានថ្មីៗ (Recent Academic Scores)</h2>
                 </div>
-                <button onClick={() => navigate('/scores')} className="text-xs font-bold text-[#2269ff] hover:underline">
-                  មើលបន្ថែម
-                </button>
               </div>
               <div className="space-y-3">
                 {myScores.map((score, idx) => (
@@ -418,27 +401,12 @@ export default function Dashboard() {
                 </span>
               </div>
               <p className="text-sm text-slate-600 mt-1 font-normal">
-                ទំព័រដើមគ្រប់គ្រង និងតាមដានប្រព័ន្ធ · សូមស្វាគមន៍ <span className="font-bold text-[#2269ff]">{user?.first_name || user?.email}</span> · {dateStr}
+                ទំព័រដើមគ្រប់គ្រង និងតាមដានប្រព័ន្ធ · សូមស្វាគមន៍ <span className="font-bold text-[#2269ff]">{formattedUser}</span> {roleTitle && <span className="rounded-md bg-blue-100 text-[#2269ff] px-2 py-0.5 text-xs font-black ml-1">{roleTitle}</span>} · {dateStr}
               </p>
             </div>
           </div>
 
-          {/* Header Quick Actions */}
-          <div className="flex items-center gap-3 self-start md:self-auto">
-            <button
-              onClick={() => navigate('/qr-attendance')}
-              className="flex items-center gap-2 rounded-xl bg-[#2269ff] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 transition-all">
-              <QrCode className="h-4.5 w-4.5" />
-              <span>ស្កេន QR វត្តមាន</span>
-            </button>
 
-            <button
-              onClick={() => navigate('/teaching-reports')}
-              className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/60 px-5 py-2.5 text-sm font-semibold text-[#2269ff] hover:bg-blue-100 transition-all">
-              <FileText className="h-4.5 w-4.5" />
-              <span>របាយការណ៍បង្រៀន</span>
-            </button>
-          </div>
         </div>
 
         {/* 4 Minimalist Metric Cards - Clean Bold Values */}
@@ -488,7 +456,7 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="h-72">
-              <Bar data={attendanceData} options={chartOptions} />
+              <Bar data={dynamicAttendanceData} options={chartOptions} />
             </div>
           </div>
 
@@ -499,7 +467,7 @@ export default function Dashboard() {
               <p className="text-xs text-slate-500 font-medium">ការបែងចែកសិស្សតាមជំនាញនីមួយៗ</p>
             </div>
             <div className="h-72">
-              <Doughnut data={departmentData} options={doughnutOptions} />
+              <Doughnut data={dynamicDepartmentData} options={doughnutOptions} />
             </div>
           </div>
 
@@ -513,14 +481,25 @@ export default function Dashboard() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-[#2269ff] tracking-tight">និទ្ទេស និងលទ្ធផលសិក្សា (Academic Trend)</h2>
-                <p className="text-xs text-slate-500 font-medium">ការកើនឡើងពិន្ទុមធ្យមភាគសិស្សតាមឆមាសនីមួយៗ</p>
+                <p className="text-xs text-slate-500 font-medium">ពិន្ទុមធ្យមភាគសិស្សសរុបតាមឆមាស · GPA មធ្យម: <span className="font-bold text-[#0a1f44]">{summary?.average_gpa ?? 0}</span></p>
               </div>
               <div className="flex items-center text-xs font-bold text-[#2269ff] bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full">
-                <TrendingUp className="h-4 w-4 mr-1 text-[#2269ff]" /> +13% កើនឡើង
+                <TrendingUp className="h-4 w-4 mr-1 text-[#2269ff]" />
+                {scoreTrendItems && scoreTrendItems.length > 1
+                  ? `${scoreTrendItems[scoreTrendItems.length - 1].avg_score}% ឆមាសចុងក្រោយ`
+                  : 'ទិន្នន័យជាក់ស្តែង DB'}
               </div>
             </div>
             <div className="h-64">
-              <Line data={scoreProgressData} options={chartOptions} />
+              {scoreTrendItems ? (
+                <Line data={scoreProgressData} options={chartOptions} />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
+                  <TrendingUp className="h-10 w-10 opacity-30" />
+                  <p className="text-sm font-medium">ពុំទាន់មានទិន្នន័យពិន្ទុ (No Report Cards Yet)</p>
+                  <p className="text-xs">បញ្ចូលពិន្ទុសិស្សសិន ។</p>
+                </div>
+              )}
             </div>
           </div>
 

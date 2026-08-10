@@ -8,7 +8,7 @@ from app.models.user import User, RoleEnum
 from app.core.security import get_password_hash
 from app.models.academic import AcademicYear, Semester, Grade, Section, Subject
 from app.models.student import Student
-from app.models.teacher import Teacher
+from app.models.teacher import Teacher, TeacherStatusEnum
 import qrcode
 import io
 import base64
@@ -69,12 +69,14 @@ def seed_database():
 
         # 4. Subjects
         subjects_data = [
-            ("Mathematics", "MATH101", "Core"),
-            ("Science", "SCI101", "Core"),
-            ("English", "ENG101", "Core"),
-            ("History", "HIS101", "Core"),
-            ("Physics", "PHY101", "Elective"),
-            ("Computer Science", "CS101", "Elective"),
+            ("MS Word", "MS-WORD", "Core"),
+            ("MS Excel", "MS-EXCEL", "Core"),
+            ("MS PowerPoint", "MS-PPT", "Core"),
+            ("MS Office (W+E+P+IN)", "MS-WEPIN", "Core"),
+            ("Adobe Photoshop", "ADOBE-PS", "Core"),
+            ("Web Development", "WEB101", "Core"),
+            ("Database Systems", "DBS201", "Core"),
+            ("Computer Networks", "NET301", "Core"),
         ]
         for sname, scode, stype in subjects_data:
             if not db.query(Subject).filter(Subject.code == scode).first():
@@ -91,15 +93,34 @@ def seed_database():
                 t = Teacher(
                     teacher_id=tid, first_name=fn, last_name=ln, email=email,
                     department=dept, qualification=qual, performance_rating=rating,
-                    qr_code=generate_qr(tid), status="Active"
+                    qr_code=generate_qr(tid), status=TeacherStatusEnum.active
                 )
                 db.add(t)
                 # Create user login for teacher
                 if not db.query(User).filter(User.email == email).first():
                     db.add(User(email=email, hashed_password=get_password_hash("teacher123"), first_name=fn, last_name=ln, role=RoleEnum.teacher))
 
+        # 6. Sample Students
+        students_data = [
+            ("STU-2025-001", "Chankeo", "Kim", "kimchankeo1234@gmail.com", "MS Excel", "A"),
+            ("STU-2025-002", "Sokha", "Meas", "sokha.meas@school.com", "Adobe Photoshop", "A"),
+            ("STU-2025-003", "Bopha", "Vong", "bopha.vong@school.com", "Computer Networks", "B"),
+            ("STU-2025-004", "Dara", "Rith", "dara.rith@school.com", "Web Development", "A"),
+        ]
+        from app.models.student import StatusEnum
+        for sid, fn, ln, email, cname, sec in students_data:
+            if not db.query(Student).filter(Student.student_id == sid).first():
+                st = Student(
+                    student_id=sid, first_name=fn, last_name=ln, email=email,
+                    class_name=cname, section=sec, status=StatusEnum.active,
+                    qr_code=generate_qr(sid), is_active=True
+                )
+                db.add(st)
+                if not db.query(User).filter(User.email == email).first():
+                    db.add(User(email=email, hashed_password=get_password_hash("student123"), first_name=fn, last_name=ln, role=RoleEnum.student))
+
         db.commit()
-        print("[OK] Database successfully seeded with Academic Structure!")
+        print("[OK] Database successfully seeded with Academic Structure and Students!")
     except Exception as e:
         db.rollback()
         print(f"Error seeding database: {e}")

@@ -32,7 +32,7 @@ const REPORT_TYPES = [
   { id: 'school-summary',   title: 'School Summary',        desc: 'Executive summary KPI metrics and overall institutional performance', icon: School, color: 'text-cyan-600 bg-cyan-50 border-cyan-200' },
 ];
 
-const CLASSES = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
+
 
 export default function ReportsCenter() {
   const [selectedType, setSelectedType] = useState('attendance');
@@ -41,6 +41,13 @@ export default function ReportsCenter() {
     const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0];
   });
   const [toDate, setToDate]             = useState(() => new Date().toISOString().split('T')[0]);
+
+  const { data: dbSubjects = [] } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['subjects'],
+    queryFn: async () => (await axios.get('/academic/subjects')).data,
+  });
+
+  const subjectOptions = dbSubjects.map(s => s.name);
 
   // Query Summary Metrics
   const { data: summary, isLoading, refetch } = useQuery<SchoolSummary>({
@@ -78,7 +85,7 @@ export default function ReportsCenter() {
         @media print{body{padding:12px}}
       </style></head><body>
       <h1>🏫 ${activeObj?.title || 'School Management Report'}</h1>
-      <div class="meta">Filter Range: ${fromDate} to ${toDate} ${selClass ? '· Class: ' + selClass : ''} · Generated on ${new Date().toLocaleDateString()}</div>
+      <div class="meta">Filter Range: ${fromDate} to ${toDate} ${selClass ? '· មុខវិជ្ជា: ' + selClass : ''} · Generated on ${new Date().toLocaleDateString()}</div>
       
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-val">${summary?.total_students || 0}</div><div class="kpi-lbl">Total Students</div></div>
@@ -149,12 +156,12 @@ export default function ReportsCenter() {
             <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#2269ff] " />
           </div>
-          <div className="flex flex-col gap-1 min-w-[160px]">
-            <label className="text-xs font-medium text-slate-500">Class Filter</label>
+          <div className="flex flex-col gap-1 min-w-[180px]">
+            <label className="text-xs font-medium text-slate-500">មុខវិជ្ជា (Subject) Filter</label>
             <select value={selClass} onChange={e => setSelClass(e.target.value)}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#2269ff] ">
-              <option value="">All Classes</option>
-              {CLASSES.map(c => <option key={c}>{c}</option>)}
+              <option value="">គ្លាបមុខវិជ្ជា (All Subjects)</option>
+              {subjectOptions.map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
         </div>

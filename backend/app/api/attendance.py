@@ -249,6 +249,25 @@ def report_by_student(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
+    from app.models.student import Student
+
+    # 1. Base map of all active students
+    sq = db.query(Student).filter(Student.is_active == True)
+    if class_name:
+        sq = sq.filter(Student.class_name == class_name)
+    all_students = sq.all()
+
+    pivot: dict = {}
+    for st in all_students:
+        name = f"{st.first_name} {st.last_name}".strip()
+        pivot[st.student_id] = {
+            "student_sid": st.student_id,
+            "student_name": name,
+            "class_name": st.class_name or "N/A",
+            "present": 0, "late": 0, "absent": 0, "excused": 0,
+        }
+
+    # 2. Aggregate actual attendance records
     q = db.query(
         AttendanceRecord.student_sid,
         AttendanceRecord.student_name,
@@ -263,22 +282,24 @@ def report_by_student(
     if to_date:     q = q.filter(AttendanceRecord.date <= to_date)
     if class_name:  q = q.filter(AttendanceRecord.class_name == class_name)
     rows = q.all()
-    pivot: dict = {}
+
     for row in rows:
         sid = row.student_sid
         if sid not in pivot:
             pivot[sid] = {
                 "student_sid": sid, "student_name": row.student_name,
-                "class_name": row.class_name,
+                "class_name": row.class_name or "N/A",
                 "present": 0, "late": 0, "absent": 0, "excused": 0,
             }
         pivot[sid][row.status] = row.count
+
     data = list(pivot.values())
     for d in data:
         total = sum([d["present"], d["late"], d["absent"], d["excused"]])
         d["total"] = total
         d["rate"] = round((d["present"] + d["late"]) / total * 100, 1) if total else 0.0
-    return sorted(data, key=lambda x: x["rate"])[:limit]
+    return sorted(data, key=lambda x: x["student_name"])[:limit]
+
 
 
 @router.get("/reports/heatmap")

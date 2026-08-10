@@ -70,7 +70,15 @@ def get_students(
     if status:
         query = query.filter(Student.status == status)
 
-    return query.offset(skip).limit(limit).all()
+    students = query.offset(skip).limit(limit).all()
+    updated = False
+    for s in students:
+        if not s.qr_code and s.student_id:
+            s.qr_code = generate_qr_code(s.student_id)
+            updated = True
+    if updated:
+        db.commit()
+    return students
 
 
 def count_students(
@@ -124,6 +132,26 @@ def update_student(db: Session, db_student: Student, student: StudentUpdate) -> 
 
 
 def delete_student(db: Session, db_student: Student) -> Student:
+    from app.models.user import User
+    from app.models.attendance import AttendanceRecord
+    from app.models.score import StudentScore, ReportCard
+    from sqlalchemy import func
+
+    sid = db_student.student_id
+    email = db_student.email.strip().lower() if db_student.email else None
+
+    # Delete linked user account if exists
+    if email:
+        u = db.query(User).filter(func.lower(User.email) == email).first()
+        if u:
+            db.delete(u)
+
+    # Delete linked attendance, scores, report cards
+    db.query(AttendanceRecord).filter(AttendanceRecord.student_sid == sid).delete(synchronize_session=False)
+    db.query(StudentScore).filter(StudentScore.student_sid == sid).delete(synchronize_session=False)
+    db.query(ReportCard).filter(ReportCard.student_sid == sid).delete(synchronize_session=False)
+
     db.delete(db_student)
     db.commit()
     return db_student
+

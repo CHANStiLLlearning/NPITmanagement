@@ -106,8 +106,20 @@ def get_analytics_overview(
             "reports_submitted": reports_count,
         })
 
-    # 5. Grade Distribution
-    grade_dist = {"A": 35, "B": 40, "C": 15, "D": 7, "F": 3}
+    # 5. Grade Distribution - Real data from ReportCards
+    grade_dist: dict = {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0}
+    all_rc = db.query(ReportCard.letter_grade).all()
+    for (lg,) in all_rc:
+        if lg:
+            g = lg.upper().strip()
+            if g.startswith("A"): grade_dist["A"] += 1
+            elif g.startswith("B"): grade_dist["B"] += 1
+            elif g.startswith("C"): grade_dist["C"] += 1
+            elif g.startswith("D"): grade_dist["D"] += 1
+            else: grade_dist["F"] += 1
+    # Use defaults if no report cards exist yet
+    if sum(grade_dist.values()) == 0:
+        grade_dist = {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0}
 
     return {
         "attendance_rate": att_rate,
