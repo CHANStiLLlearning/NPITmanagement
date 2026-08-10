@@ -29,7 +29,7 @@ const navigation = [
   { name: 'Users', khmer: 'អ្នកប្រើប្រាស់', href: '/users', icon: Users, allowedRoles: ['super_admin'] },
   { name: 'Teachers', khmer: 'លោកគ្រូ-អ្នកគ្រូ', href: '/teachers', icon: UserSquare2, allowedRoles: ['super_admin', 'admin', 'principal'] },
   { name: 'Students', khmer: 'សិស្សទាំងអស់', href: '/students', icon: GraduationCap, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher'] },
-  { name: 'Subjects', khmer: 'មុខវិជ្ជា', href: '/subjects', icon: BookOpen, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student'] },
+  { name: 'Subjects', khmer: 'មុខវិជ្ជា', href: '/subjects', icon: BookOpen, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher'] },
   { name: 'Attendance', khmer: 'វត្តមានសិស្ស', href: '/attendance', icon: CheckSquare, allowedRoles: ['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent'] },
   { name: 'System Logs', khmer: 'កំណត់ហេតុប្រព័ន្ធ', href: '/system-logs', icon: Activity, allowedRoles: ['super_admin'] },
 ];

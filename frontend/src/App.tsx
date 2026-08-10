@@ -15,10 +15,13 @@ import SystemLogs from '@/pages/system/SystemLogs';
 import ProfilePage from '@/pages/management/ProfilePage';
 import Subjects from '@/pages/academic/Subjects';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { token } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
+  const { token, user } = useAuth();
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
   }
   return <>{children}</>;
 };
@@ -37,7 +40,7 @@ function AppRoutes() {
       <Route path="/users" element={<ProtectedRoute><UsersManager /></ProtectedRoute>} />
       <Route path="/teachers" element={<ProtectedRoute><Teachers /></ProtectedRoute>} />
       <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
-      <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
+      <Route path="/subjects" element={<ProtectedRoute allowedRoles={['super_admin', 'admin', 'principal', 'teacher']}><Subjects /></ProtectedRoute>} />
       <Route path="/attendance" element={<ProtectedRoute><AttendanceReports /></ProtectedRoute>} />
       <Route path="/system-logs" element={<ProtectedRoute><SystemLogs /></ProtectedRoute>} />
       <Route path="/file-manager" element={<ProtectedRoute><FileManager /></ProtectedRoute>} />
