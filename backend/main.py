@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.security_middleware import SecurityHeadersMiddleware, RateLimiterMiddleware
+from app.core.security_middleware import SecurityHeadersMiddleware
 
 app = FastAPI(
     title="School Management System API",
@@ -20,8 +20,6 @@ else:
     allow_credentials = False
 
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimiterMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
