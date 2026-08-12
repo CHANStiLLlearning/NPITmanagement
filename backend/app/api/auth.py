@@ -146,6 +146,22 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
     db.commit()
     return {"message": "Password successfully reset"}
 
+@router.post("/notify-login-access")
+def notify_login_access(request: Request, db: Session = Depends(get_db)):
+    from app.core.email import send_alert_email
+    from app.models.user import User, RoleEnum
+    
+    super_admin = db.query(User).filter(User.role == RoleEnum.super_admin).first()
+    to_email = super_admin.email if super_admin else "admin@school.com"
+    client_ip = request.client.host if (request and request.client) else "Unknown IP"
+    
+    subject = "Security Alert: Login Page Accessed"
+    body = f"Hello Super Admin,\n\nThe system login page was just accessed from IP address: {client_ip}.\n\nThis is an automated security notification."
+    
+    send_alert_email(to_email, subject, body)
+    
+    return {"message": "Notification sent"}
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def public_register(request_data: RegisterRequest, db: Session = Depends(get_db)):
     """

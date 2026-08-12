@@ -44,6 +44,11 @@ export default function SystemLogs() {
     setCurrentPage(1);
   }, [search, actionFilter, moduleFilter]);
 
+  // Alert Super Admins when this page is viewed
+  useEffect(() => {
+    axios.post('/system-logs/alert-view').catch(console.error);
+  }, []);
+
   const { data: logs = [], refetch } = useQuery<AuditLog[]>({
     queryKey: ['system-logs', search, actionFilter, moduleFilter],
     queryFn: async () => {

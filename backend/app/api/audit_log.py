@@ -12,8 +12,39 @@ from app.crud.audit_log import get_audit_logs, log_action
 from app.api.deps import get_current_active_user
 from app.models.user import User
 
+from app.core.email import send_alert_email
+from app.models.user import RoleEnum
+
 router = APIRouter()
 
+@router.post("/alert-view")
+def alert_system_logs_view(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    # Log the action in the database
+    log_action(
+        db,
+        user_email=current_user.email,
+        user_name=f"{current_user.first_name or ''} {current_user.last_name or ''}".strip(),
+        action="view",
+        module="Audit Log",
+        details="User accessed the System Logs page",
+        ip_address=request.client.host if request.client else None
+    )
+
+    # Find all Super Admins to notify
+    super_admins = db.query(User).filter(User.role == RoleEnum.super_admin).all()
+    
+    subject = "Security Alert: System Logs Accessed"
+    body = f"Hello Super Admin,\n\nThe System Logs page was just accessed by user '{current_user.email}' ({current_user.role}).\nIP Address: {request.client.host if request.client else 'Unknown'}\n\nPlease verify if this action was authorized."
+
+    for admin in super_admins:
+        if admin.email:
+            send_alert_email(admin.email, subject, body)
+
+    return {"status": "alert sent"}
 
 @router.get("/", response_model=List[AuditLogOut])
 def list_system_logs(
