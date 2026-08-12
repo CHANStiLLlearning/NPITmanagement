@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import GlobalSearchModal from '../common/GlobalSearchModal';
 import { Breadcrumbs } from '../common/Breadcrumbs';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Search, LogOut, Sun, Moon, Menu, X } from 'lucide-react';
+import { Search, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getMediaUrl } from '@/config/constants';
@@ -11,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navigate = useNavigate();
@@ -103,14 +102,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Right Header Tools */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Dark / Light Toggle */}
-            <button
-              onClick={toggleTheme}
-              title="Toggle Mode"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-600 transition-all">
-              {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-500" /> : <Moon className="h-4 w-4" />}
-            </button>
-
             {/* User Profile Info & Logout */}
             <div className="flex items-center gap-2 sm:gap-3 border-l border-blue-100 pl-2 sm:pl-3">
               <button
