@@ -1,0 +1,49 @@
+{
+  "total_students": 8,
+  "total_teachers": 2,
+  "attendance_rate": 0.0,
+  "total_attendance_scans": 8,
+  "teaching_reports_count": 0,
+  "approved_teaching_reports": 0,
+  "report_cards_count": 0,
+  "average_gpa": 0.0,
+  "class_distribution": {
+    "Ms-PowerPoint": 3,
+    "Ms-W+E+P+IN": 3,
+    "Ms-Word": 2
+  },
+  "weekly_attendance": [
+    {
+      "day": "\u1785\u17d0\u1793\u17d2\u1791 (Mon) (10/08)",
+      "date": "2026-08-10",
+      "present": 0,
+      "absent": 0
+    },
+    {
+      "day": "\u17a2\u1784\u17d2\u1782\u17b6\u179a (Tue) (11/08)",
+      "date": "2026-08-11",
+      "present": 0,
+      "absent": 0
+    },
+    {
+      "day": "\u1796\u17bb\u1792 (Wed) (12/08)",
+      "date": "2026-08-12",
+      "present": 0,
+      "absent": 8
+    },
+    {
+      "day": "\u1796\u17d2\u179a\u17a0\u179f\u17d2\u1794\u178f\u17b7\u17cd (Thu) (13/08)",
+      "date": "2026-08-13",
+      "present": 0,
+      "absent": 0
+    },
+    {
+      "day": "\u179f\u17bb\u1780\u17d2\u179a (Fri) (14/08)",
+      "date": "2026-08-14",
+      "present": 0,
+      "absent": 0
+    }
+  ],
+  "score_trend": [],
+  "generated_at": "2026-08-12 04:36:07"
+}

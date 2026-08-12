@@ -58,6 +58,18 @@ def on_startup():
                     admin.hashed_password = get_password_hash("admin123")
                     db.commit()
                     print("[STARTUP] Repaired Super Admin password hash (was stale/incompatible)")
+
+            # Auto-seed database if it's completely empty (e.g. fresh production Postgres)
+            from app.models.teacher import Teacher
+            if db.query(Teacher).count() == 0:
+                print("[STARTUP] Database appears empty. Running auto-seed...")
+                try:
+                    from seed import seed_database
+                    seed_database()
+                    print("[STARTUP] Auto-seed completed.")
+                except Exception as seed_err:
+                    print(f"[STARTUP] Auto-seed failed: {seed_err}")
+
         finally:
             db.close()
     except Exception as e:

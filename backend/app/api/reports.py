@@ -28,7 +28,7 @@ def get_school_summary(
     current_user: User = Depends(get_current_active_user),
 ):
     total_students = db.query(Student).filter(Student.is_active == True).count()
-    total_teachers = db.query(Teacher).filter(func.lower(Teacher.status) == "active").count()
+    total_teachers = db.query(Teacher).filter(Teacher.status == "active").count()
     if total_teachers == 0:
         total_teachers = db.query(Teacher).count()
 
