@@ -103,6 +103,9 @@ export default function Teachers() {
   const [formTab, setFormTab]         = useState(0);
   const [formData, setFormData]       = useState<Partial<Teacher>>(emptyForm);
 
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const queryParams: Record<string, string> = {};
@@ -186,6 +189,11 @@ export default function Teachers() {
             <p className="text-sm text-slate-500">{teachers.length} teachers in the system</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {selectedIds.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setShowBulkDelete(true)} className="border-red-200 text-red-600 hover:bg-red-50">
+                <Trash2 className="mr-1.5 h-4 w-4" /> Delete ({selectedIds.length})
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-1.5 h-4 w-4" /> Import CSV
             </Button>
@@ -273,6 +281,17 @@ export default function Teachers() {
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-slate-100 bg-slate-50 ">
                   <tr>
+                    <th className="px-5 py-3.5 w-10">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                        checked={teachers.length > 0 && selectedIds.length === teachers.length}
+                        onChange={() => {
+                          if (selectedIds.length === teachers.length) setSelectedIds([]);
+                          else setSelectedIds(teachers.map(t => t.id));
+                        }}
+                      />
+                    </th>
                     {['Teacher', 'ID', 'Department', 'Contact', 'Experience', 'Rating', 'Status', 'Actions'].map(h => (
                       <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{h}</th>
                     ))}
@@ -282,7 +301,17 @@ export default function Teachers() {
                   {teachers.map((t, idx) => (
                     <motion.tr key={t.id}
                       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
-                      className="hover:bg-slate-50 :bg-[#1c3a73]/40 transition-colors">
+                      className={`hover:bg-slate-50 :bg-[#1c3a73]/40 transition-colors ${selectedIds.includes(t.id) ? 'bg-violet-50' : ''}`}>
+                      <td className="px-5 py-3.5">
+                        <input 
+                          type="checkbox" 
+                          className="rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                          checked={selectedIds.includes(t.id)}
+                          onChange={() => {
+                            setSelectedIds(p => p.includes(t.id) ? p.filter(id => id !== t.id) : [...p, t.id]);
+                          }}
+                        />
+                      </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           {t.photo_url ? (
@@ -519,6 +548,38 @@ export default function Teachers() {
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
                   <Button onClick={() => deleteMutation.mutate(deleteTarget.id)} className="bg-red-600 hover:bg-red-700 text-white">Delete</Button>
+                </div>
+              </div>
+            </Modal>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Bulk Delete Confirm ─── */}
+        <AnimatePresence>
+          {showBulkDelete && (
+            <Modal onClose={() => setShowBulkDelete(false)} title="Delete Selected Teachers">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4">
+                  <Trash2 className="h-5 w-5 text-red-500" />
+                  <p className="text-sm text-red-700">
+                    Are you sure you want to delete <strong>{selectedIds.length}</strong> selected teachers? This action cannot be undone.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowBulkDelete(false)}>Cancel</Button>
+                  <Button 
+                    onClick={async () => {
+                      for (const id of selectedIds) {
+                        await deleteMutation.mutateAsync(id);
+                      }
+                      setSelectedIds([]);
+                      setShowBulkDelete(false);
+                    }} 
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    disabled={deleteMutation.isPending}
+                  >
+                    {deleteMutation.isPending ? 'Deleting...' : 'Delete All'}
+                  </Button>
                 </div>
               </div>
             </Modal>
