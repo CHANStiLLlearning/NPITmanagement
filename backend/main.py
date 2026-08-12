@@ -30,7 +30,7 @@ app.add_middleware(
 
 from app.db.session import engine, Base, SessionLocal
 from app.models.user import User, RoleEnum
-from app.core.security import get_password_hash
+from app.core.security import verify_password, get_password_hash
 
 @app.on_event("startup")
 def on_startup():
@@ -52,6 +52,12 @@ def on_startup():
                 db.add(admin)
                 db.commit()
                 print("[STARTUP] Auto-created Super Admin: admin@school.com / admin123")
+            else:
+                # Auto-repair stale/incompatible password hash (e.g. passlib -> bcrypt migration)
+                if not verify_password("admin123", admin.hashed_password):
+                    admin.hashed_password = get_password_hash("admin123")
+                    db.commit()
+                    print("[STARTUP] Repaired Super Admin password hash (was stale/incompatible)")
         finally:
             db.close()
     except Exception as e:

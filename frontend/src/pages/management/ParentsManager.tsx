@@ -19,15 +19,10 @@ interface StudentItem {
 export default function ParentsManager() {
   const [search, setSearch] = useState('');
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
   const { data: students = [], isLoading } = useQuery<StudentItem[]>({
     queryKey: ['parents-directory', search],
     queryFn: async () => {
-      const token = localStorage.getItem('access_token');
-      const res = await axios.get(`${API_BASE_URL}/students/?limit=100`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get('/students/', { params: { limit: 100 } });
       return res.data;
     }
   });

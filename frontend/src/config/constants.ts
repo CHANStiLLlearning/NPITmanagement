@@ -1,9 +1,13 @@
 const getEnvApiUrl = (): string => {
+  // Explicit env var takes highest priority (set for Vercel/Render deployments)
   if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  // In production (Docker/nginx), API routes are proxied on the same origin
+  // so baseURL should be empty to let relative paths resolve correctly.
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return window.location.origin;
+    return '';
   }
+  // Local development fallback
   return 'http://localhost:8000';
 };
 
