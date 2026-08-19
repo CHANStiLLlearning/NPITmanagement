@@ -119,8 +119,71 @@ def seed_database():
                 if not db.query(User).filter(User.email == email).first():
                     db.add(User(email=email, hashed_password=get_password_hash("student123"), first_name=fn, last_name=ln, role=RoleEnum.student))
 
+        # 7. Sample Guardians
+        from app.models.guardian import Guardian, StudentGuardian
+        if db.query(Guardian).count() == 0:
+            g1 = Guardian(name="Chan Vanna", relationship_type="Father", phone="+855 12 888 111", email="vanna.chan@gmail.com", occupation="Civil Engineer", address="Phnom Penh")
+            g2 = Guardian(name="Keo Malis", relationship_type="Mother", phone="+855 12 888 222", email="malis.keo@gmail.com", occupation="Business Owner", address="Phnom Penh")
+            db.add_all([g1, g2])
+            db.commit()
+
+            st1 = db.query(Student).first()
+            if st1:
+                db.add(StudentGuardian(student_id=st1.id, guardian_id=g1.id, is_primary=True, is_emergency_contact=True))
+
+        # 8. Sample Fee Categories & Invoices
+        from app.models.finance import FeeCategory, FeeStructure, Invoice, InvoiceItem, Payment, InvoiceStatusEnum, PaymentMethodEnum
+        if db.query(FeeCategory).count() == 0:
+            cat_tuition = FeeCategory(name="Tuition Fee (Semester 1)", description="Standard semester academic tuition")
+            cat_lab = FeeCategory(name="Computer & Lab Facilities", description="Access to high-spec hardware and software labs")
+            db.add_all([cat_tuition, cat_lab])
+            db.commit()
+
+            st1 = db.query(Student).first()
+            if st1:
+                inv = Invoice(
+                    student_id=st1.id,
+                    academic_year="2025-2026",
+                    term_name="Semester 1",
+                    invoice_number="INV-202509-0001",
+                    issue_date=datetime.utcnow(),
+                    subtotal=350.0,
+                    discount_total=0.0,
+                    grand_total=350.0,
+                    paid_amount=350.0,
+                    status=InvoiceStatusEnum.paid
+                )
+                db.add(inv)
+                db.commit()
+                db.add(InvoiceItem(invoice_id=inv.id, description="Tuition Fee (Semester 1)", amount=300.0))
+                db.add(InvoiceItem(invoice_id=inv.id, description="Computer Lab Access", amount=50.0))
+                db.add(Payment(invoice_id=inv.id, student_id=st1.id, amount=350.0, method=PaymentMethodEnum.khqr, reference="KHQR-88992211", received_by="Finance Officer"))
+
+        # 9. Sample Exam Types & Exams
+        from app.models.exam import ExamType, Exam
+        if db.query(ExamType).count() == 0:
+            et_mid = ExamType(name="Midterm Examination", description="Midterm evaluation assessment", weight_percentage=40.0)
+            et_fin = ExamType(name="Final Examination", description="Comprehensive final semester exam", weight_percentage=60.0)
+            db.add_all([et_mid, et_fin])
+            db.commit()
+
+            ex = Exam(exam_type_id=et_mid.id, name="Midterm Exam 2025 (Semester 1)", academic_year="2025-2026", term_name="Semester 1", is_published=1)
+            db.add(ex)
+
+        # 10. Sample Announcements
+        from app.models.communication import Announcement
+        if db.query(Announcement).count() == 0:
+            db.add(Announcement(
+                title="សេចក្តីជូនដំណឹង៖ ការចុះឈ្មោះចូលរៀនឆមាសទី ១ ឆ្នាំសិក្សា ២០២៥-២០២៦",
+                message="វិទ្យាស្ថានជាតិពហុបច្ចេកទេសតេជោសែន (NPIT) សូមជម្រាបជូនដំណឹងដល់និស្សិតទាំងអស់អំពីកាលវិភាគនៃការចូលរៀនផ្លូវការ។",
+                target_audience="all",
+                priority="high",
+                author_name="NPIT Administration",
+                is_published=True
+            ))
+
         db.commit()
-        print("[OK] Database successfully seeded with Academic Structure and Students!")
+        print("[OK] Database successfully seeded with Academic Structure, Students, Guardians, Finance, and Exams!")
     except Exception as e:
         db.rollback()
         print(f"Error seeding database: {e}")

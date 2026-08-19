@@ -149,6 +149,21 @@ npm run dev
 
 ---
 
+### **4. Production Deployment with Docker Compose**
+
+To deploy the entire production stack (PostgreSQL + FastAPI + NGINX + React) with a single command:
+
+```bash
+# Build and start all services in detached mode
+docker-compose up -d --build
+```
+
+- **Frontend App**: Open [http://localhost](http://localhost) (Port 80)
+- **Backend API**: Accessible at [http://localhost:8000](http://localhost:8000)
+- **Interactive Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
 ## 🔑 Default Credentials
 
 | User Role | Username / Email | Password |

@@ -10,3 +10,9 @@ from app.models.academic import (
     TeacherAssignment, TimetableEntry, Holiday
 )
 from app.models.audit_log import AuditLog
+from app.models.school_setting import SchoolSetting
+from app.models.guardian import Guardian, StudentGuardian
+from app.models.finance import FeeCategory, FeeStructure, Invoice, InvoiceItem, Payment, Scholarship
+from app.models.exam import ExamType, Exam, ExamSchedule, ExamMark
+from app.models.staff_hr import StaffQualification, StaffLeave, StaffContract
+from app.models.communication import Announcement, SystemNotification, IssuedCertificate

@@ -83,7 +83,7 @@ import os
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.api import api_router
-from app.api import auth, users, students, teachers, attendance, teaching_reports, scores, academic, analytics, files, search, audit_log, reports
+from app.api import auth, users, students, teachers, attendance, teaching_reports, scores, academic, analytics, files, search, audit_log, reports, school_settings, finance, announcements, exams
 
 # Mount uploads static directory
 uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
@@ -107,3 +107,7 @@ app.include_router(files.router, prefix="/files", tags=["File Manager"])
 app.include_router(search.router, prefix="/search", tags=["Global Search"])
 app.include_router(audit_log.router, prefix="/system-logs", tags=["Audit Log"])
 app.include_router(reports.router, prefix="/reports-center", tags=["Reports Center"])
+app.include_router(school_settings.router, prefix="/settings", tags=["School Settings"])
+app.include_router(finance.router, prefix="/finance", tags=["Finance & Tuition"])
+app.include_router(announcements.router, prefix="/announcements", tags=["Announcements"])
+app.include_router(exams.router, prefix="/exams", tags=["Examinations"])

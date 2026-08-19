@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import auth, users, students, teachers, attendance, teaching_reports, scores, academic, analytics, files, search, audit_log, reports
+from app.api import auth, users, students, teachers, attendance, teaching_reports, scores, academic, analytics, files, search, audit_log, reports, school_settings, finance, announcements, exams
 
 api_router = APIRouter()
 
@@ -16,3 +16,7 @@ api_router.include_router(files.router, prefix="/files", tags=["File Manager"])
 api_router.include_router(search.router, prefix="/search", tags=["Global Search"])
 api_router.include_router(audit_log.router, prefix="/system-logs", tags=["Audit Log"])
 api_router.include_router(reports.router, prefix="/reports-center", tags=["Reports Center"])
+api_router.include_router(school_settings.router, prefix="/settings", tags=["School Settings"])
+api_router.include_router(finance.router, prefix="/finance", tags=["Finance & Tuition"])
+api_router.include_router(announcements.router, prefix="/announcements", tags=["Announcements"])
+api_router.include_router(exams.router, prefix="/exams", tags=["Examinations"])

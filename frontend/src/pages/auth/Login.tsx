@@ -90,9 +90,9 @@ export default function Login() {
                   អ៊ីមែល (Email)
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  placeholder="បញ្ចូលអ៊ីមែលរបស់អ្នក..."
+                  placeholder="admin@school.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full border-b-2 border-slate-300 py-2.5 text-sm sm:text-base font-semibold text-[#0a1f44] placeholder-slate-400 focus:border-[#2269ff] focus:outline-none transition-colors"
@@ -126,18 +126,32 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Remember Me */}
-              <div className="flex items-center pt-1">
-                <input
-                  id="remember"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-[#2269ff] focus:ring-[#2269ff] cursor-pointer"
-                />
-                <label htmlFor="remember" className="ml-2 text-xs sm:text-sm font-semibold text-[#1c3a73] cursor-pointer">
-                  ចងចាំខ្ញុំ (Remember me)
-                </label>
+              {/* Remember Me & Quick Admin Demo */}
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center">
+                  <input
+                    id="remember"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-[#2269ff] focus:ring-[#2269ff] cursor-pointer"
+                  />
+                  <label htmlFor="remember" className="ml-2 text-xs sm:text-sm font-semibold text-[#1c3a73] cursor-pointer">
+                    ចងចាំខ្ញុំ (Remember me)
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@school.com');
+                    setPassword('admin123');
+                    setError('');
+                  }}
+                  className="text-xs font-bold text-[#2269ff] hover:underline bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                >
+                  ⚡ Autofill Admin
+                </button>
               </div>
 
               {/* Submit Button */}
